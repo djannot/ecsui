@@ -5,6 +5,7 @@ import (
   "crypto/tls"
   "encoding/json"
   "encoding/xml"
+  "io/ioutil"
   "log"
   "net/http"
   "net/url"
@@ -21,6 +22,14 @@ import (
 
 var rendering *render.Render
 var store = sessions.NewCookieStore([]byte("session-key"))
+var config Config
+
+type Response struct {
+  Code int
+  Body string
+  RequestHeaders http.Header
+  ResponseHeaders http.Header
+}
 
 type appError struct {
 	err error
@@ -80,9 +89,22 @@ func LoginMiddleware(h http.Handler) http.Handler {
 }
 
 func main() {
+  // Read the config file
+  configFile, err := ioutil.ReadFile("./config.json")
+  if err != nil {
+    log.Fatal("Can't open the configuration file: ", err)
+  }
+  /*
+  configFile, err := Asset("config.json")
+  if err != nil {
+    log.Fatal("Can't open the configuration file: ", err)
+  }
+  */
+  json.Unmarshal(configFile, &config)
+
   // To be compatible with Cloud Foundry
   var port = ""
-  _, err := cfenv.Current()
+  _, err = cfenv.Current()
   if(err != nil) {
     port = "80"
   } else {
@@ -95,9 +117,11 @@ func main() {
   router.HandleFunc("/", Index)
   router.Handle("/api/v1/credentials", appHandler(Credentials)).Methods("GET")
   router.Handle("/api/v1/buckets", appHandler(ListBuckets)).Methods("GET")
+  router.Handle("/api/v1/examples", appHandler(GetExamples)).Methods("GET")
   router.Handle("/api/v1/bucket", appHandler(CreateBucket)).Methods("POST")
   router.Handle("/api/v1/metadatasearch", appHandler(MetadataSearch)).Methods("POST")
   router.Handle("/api/v1/searchmetadata", appHandler(SearchMetadata)).Methods("POST")
+  router.Handle("/api/v1/apis", appHandler(Apis)).Methods("POST")
   router.HandleFunc("/login", Login)
   router.HandleFunc("/logout", Logout)
   router.PathPrefix("/app/").Handler(http.StripPrefix("/app/", http.FileServer(http.Dir("app"))))
@@ -245,6 +269,10 @@ func getS3(r *http.Request) (S3, error) {
 }
 
 type ECSBucket struct {
+  Api string `json:"bucket_api"`
+  Endpoint string `json:"bucket_endpoint"`
+  User string `json:"bucket_user"`
+  Password string `json:"bucket_password"`
   Name string `json:"bucket_name"`
   ReplicationGroup string `json:"bucket_replication_group"`
   MetadataSearch string `json:"bucket_metadata_search"`
@@ -256,13 +284,9 @@ type ECSBucket struct {
 
 // Create a new bucket
 func CreateBucket(w http.ResponseWriter, r *http.Request) *appError {
-  s3, err := getS3(r)
-  if err != nil {
-    return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
-  }
   decoder := json.NewDecoder(r.Body)
   var ecsBucket ECSBucket
-  err = decoder.Decode(&ecsBucket)
+  err := decoder.Decode(&ecsBucket)
   if err != nil {
     return &appError{err: err, status: http.StatusBadRequest, json: "Can't decode JSON data"}
   }
@@ -293,14 +317,47 @@ func CreateBucket(w http.ResponseWriter, r *http.Request) *appError {
   } else {
     headers["x-emc-server-side-encryption-enabled"] = []string{"false"}
   }
-  bucketCreateResponse, err := s3Request(s3, ecsBucket.Name, "PUT", "/", headers, "")
-  if err != nil {
-    return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
-  }
-  if bucketCreateResponse.Code == 200 {
-    rendering.JSON(w, http.StatusOK, "")
-  } else {
-    return &appError{err: err, status: http.StatusInternalServerError, xml: bucketCreateResponse.Body}
+  var bucketCreateResponse Response
+  if ecsBucket.Api == "s3" {
+    s3, err := getS3(r)
+    if err != nil {
+      return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+    }
+    bucketCreateResponse, err = s3Request(s3, ecsBucket.Name, "PUT", "/", headers, "")
+    if err != nil {
+      return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+    }
+    if bucketCreateResponse.Code == 200  {
+      rendering.JSON(w, http.StatusOK, ecsBucket.Name)
+    } else {
+      return &appError{err: err, status: http.StatusInternalServerError, xml: bucketCreateResponse.Body}
+    }
+  } else if ecsBucket.Api == "swift" {
+    bucketCreateResponse, err = swiftRequest(ecsBucket.Endpoint, ecsBucket.User, ecsBucket.Password, ecsBucket.Name, "PUT", "/", headers, "")
+    log.Print(bucketCreateResponse)
+    if err != nil {
+      return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+    }
+    if bucketCreateResponse.Code >= 200 && bucketCreateResponse.Code < 300  {
+      rendering.JSON(w, http.StatusOK, ecsBucket.Name)
+    } else {
+      return &appError{err: err, status: http.StatusInternalServerError, xml: bucketCreateResponse.Body}
+    }
+  } else if ecsBucket.Api == "atmos" {
+    s3, err := getS3(r)
+    if err != nil {
+      return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+    }
+    bucketCreateResponse, err = atmosRequest(ecsBucket.Endpoint, s3.AccessKey, s3.SecretKey, "", "PUT", "/rest/subtenant", headers, "")
+    if err != nil {
+      log.Print(err)
+      return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+    }
+    if bucketCreateResponse.Code >= 200 && bucketCreateResponse.Code < 300  {
+      rendering.JSON(w, http.StatusOK, bucketCreateResponse.ResponseHeaders["Subtenantid"][0])
+    } else {
+      return &appError{err: err, status: http.StatusInternalServerError, xml: bucketCreateResponse.Body}
+    }
   }
 
   return nil
@@ -320,6 +377,13 @@ func ListBuckets(w http.ResponseWriter, r *http.Request) *appError {
     buckets = append(buckets, bucket.Name)
   }
   rendering.JSON(w, http.StatusOK, buckets)
+
+  return nil
+}
+
+// Retrieve the examples loaded from the config.json file
+func GetExamples(w http.ResponseWriter, r *http.Request) *appError {
+  rendering.JSON(w, http.StatusOK, config.Examples)
 
   return nil
 }
@@ -348,6 +412,7 @@ type Query struct {
   Query string `json:"search_query"`
   MaxKeys string `json:"search_max_keys"`
   SortedBy string `json:"search_sorted_by"`
+  ReturnAllMetadata bool `json:"search_return_all_metadata"`
   Marker string `json:"search_marker"`
 }
 
@@ -372,6 +437,9 @@ func MetadataSearch(w http.ResponseWriter, r *http.Request) *appError {
   }
   if query.SortedBy != "" {
     path += "&sorted=" + query.SortedBy
+  }
+  if query.ReturnAllMetadata {
+    path += "&attributes=ALL"
   }
   bucketQueryResponse, err := s3Request(s3, query.Bucket, "GET", path, make(map[string][]string), "")
   if err != nil {
@@ -421,6 +489,87 @@ func SearchMetadata(w http.ResponseWriter, r *http.Request) *appError {
   bucketSearchMetadataResult := &BucketSearchMetadataResult{}
   xml.NewDecoder(strings.NewReader(bucketSearchMetadataResponse.Body)).Decode(bucketSearchMetadataResult)
   rendering.JSON(w, http.StatusOK, bucketSearchMetadataResult)
+
+  return nil
+}
+
+type ApisQuery struct {
+  Api string `json:"apis_api"`
+  Endpoint string `json:"apis_endpoint"`
+  User string `json:"apis_user"`
+  Password string `json:"apis_password"`
+  Bucket string `json:"apis_bucket"`
+  Container string `json:"apis_container"`
+  Subtenant string `json:"apis_subtenant"`
+  Path string `json:"apis_path"`
+  Range string `json:"apis_range"`
+  Data string `json:"apis_data"`
+  Method string `json:"apis_method"`
+  Headers map[string][]string `json:"apis_headers"`
+}
+
+type HttpResponse struct {
+  Method string `json:"method"`
+  Path string `json:"path"`
+  Code int `json:"code"`
+  RequestHeaders map[string][]string `json:"request_headers"`
+  ResponseHeaders map[string][]string `json:"response_headers"`
+  Body string `json:"body"`
+}
+
+// Execute the API request
+func Apis(w http.ResponseWriter, r *http.Request) *appError {
+  decoder := json.NewDecoder(r.Body)
+  var apisQuery ApisQuery
+  err := decoder.Decode(&apisQuery)
+  if err != nil {
+    return &appError{err: err, status: http.StatusBadRequest, json: "Can't decode JSON data"}
+  }
+  headers := make(map[string][]string)
+  if len(apisQuery.Headers) > 0 {
+    headers = apisQuery.Headers
+  }
+  if apisQuery.Range != "" {
+    headers["Range"] = []string{apisQuery.Range}
+  }
+  var response Response
+  if apisQuery.Api == "s3" {
+    s3, err := getS3(r)
+    if err != nil {
+      return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+    }
+    response, err = s3Request(s3, apisQuery.Bucket, apisQuery.Method, apisQuery.Path, headers, apisQuery.Data)
+    if err != nil {
+      return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+    }
+  } else if apisQuery.Api == "swift" {
+    response, err = swiftRequest(apisQuery.Endpoint, apisQuery.User, apisQuery.Password, apisQuery.Container, apisQuery.Method, apisQuery.Path, headers, apisQuery.Data)
+    if err != nil {
+      return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+    }
+  } else if apisQuery.Api == "atmos" {
+    s3, err := getS3(r)
+    if err != nil {
+      return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+    }
+    response, err = atmosRequest(apisQuery.Endpoint, s3.AccessKey, s3.SecretKey, apisQuery.Subtenant, apisQuery.Method, apisQuery.Path, headers, apisQuery.Data)
+    if err != nil {
+      return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+    }
+  } else if apisQuery.Api == "ecs" {
+    response, err = ecsRequest(apisQuery.Endpoint, apisQuery.User, apisQuery.Password, apisQuery.Method, apisQuery.Path, headers, apisQuery.Data)
+    if err != nil {
+      return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+    }
+  }
+  var httpResponse HttpResponse
+  httpResponse.Method = apisQuery.Method
+  httpResponse.Path = apisQuery.Path
+  httpResponse.Code = response.Code
+  httpResponse.RequestHeaders = response.RequestHeaders
+  httpResponse.ResponseHeaders = response.ResponseHeaders
+  httpResponse.Body = response.Body
+  rendering.JSON(w, http.StatusOK, httpResponse)
 
   return nil
 }

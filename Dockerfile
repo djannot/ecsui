@@ -1,6 +1,6 @@
 FROM google/golang
 WORKDIR /go/src
-RUN git clone https://djannot:f1f5cd1cc5370c2a935d843e92863a82ccad4c15@github.com/djannot/ecsui.git
+RUN git clone https://djannot:042bebfd8bdb7b0c0b905a899f24f29eb75d4e2d@github.com/djannot/ecsui.git
 WORKDIR /go/src/ecsui
 RUN go get "github.com/cloudfoundry-community/go-cfenv"
 RUN go get "github.com/codegangsta/negroni"

@@ -1,28 +1,49 @@
-<div class="panel panel-primary" ng-if="menu=='create-bucket'">
-  <div class="panel-heading">Create bucket</div>
+<div class="panel panel-primary" ng-if="menu.startsWith('create-')">
+  <div class="panel-heading">Create bucket/container/subtenant</div>
   <div class="panel-body">
-    <form accept-charset="UTF-8" ng-submit="bucketCtrl.create()">
-      <div class="field">
+    <form accept-charset="UTF-8" ng-submit="bucketCtrl.create(menu.split('-')[1])">
+      <div class="field" ng-if="(menu=='create-swift' || menu=='create-atmos')">
+        <div class="input-group">
+          <span class="input-group-addon">Endpoint</span>
+          <input ng-model="bucketCtrl.bucket_endpoint" ng-required="true" class="form-control" id="bucket_endpoint" name="bucket_endpoint" type="text" />
+        </div>
+        <br />
+      </div>
+      <div class="field" ng-if="menu=='create-swift'">
+        <div class="input-group">
+          <span class="input-group-addon">User</span>
+          <input ng-model="bucketCtrl.bucket_user" ng-required="true" class="form-control" id="bucket_user" name="bucket_user" type="text" />
+        </div>
+        <br />
+      </div>
+      <div class="field" ng-if="menu=='create-swift'">
+        <div class="input-group">
+          <span class="input-group-addon">Password</span>
+          <input ng-model="bucketCtrl.bucket_password" ng-required="true" class="form-control" id="bucket_password" name="bucket_password" type="password" />
+        </div>
+        <br />
+      </div>
+      <div class="field" ng-if="(menu=='create-s3' || menu=='create-swift')">
         <div class="input-group">
           <span class="input-group-addon">Bucket name</span>
           <input ng-model="bucketCtrl.bucket_name" ng-required="true" class="form-control" id="bucket_name" name="bucket_name" type="text" />
         </div>
+        <br />
       </div>
-      <br />
       <div class="field">
         <div class="input-group">
           <span class="input-group-addon">Replication Group</span>
           <input ng-model="bucketCtrl.bucket_replication_group" class="form-control" id="bucket_replication_group" name="bucket_replication_group" type="text" />
         </div>
+        <br />
       </div>
-      <br />
-      <div class="field">
+      <div class="field" ng-if="menu=='create-s3'">
         <div class="input-group">
           <span class="input-group-addon">Metadata search</span>
-          <input ng-model="bucketCtrl.bucket_metadata_search" class="form-control" id="bucket_metadata_search" name="bucket_metadata_search" type="text" />
+          <input ng-model="bucketCtrl.bucket_metadata_search" class="form-control" id="bucket_metadata_search" name="bucket_metadata_search" type="text" placeholder="ex: Size,CreateTime,LastModified,x-amz-meta-custom1;String,x-amz-meta-custom2;Integer" />
         </div>
+        <br />
       </div>
-      <br />
       <div class="field">
         <div class="input-group">
           <input type="text" class="form-control" value="Enable Access During Outage" readonly="readonly">
@@ -30,8 +51,8 @@
             <input ng-model="bucketCtrl.bucket_enable_ado" id="bucket_enable_ado" name="bucket_enable_ado" type="checkbox" />
           </span>
         </div>
+        <br />
       </div>
-      <br />
       <div class="field">
         <div class="input-group">
           <input type="text" class="form-control" value="Enable FS" readonly="readonly">
@@ -39,17 +60,17 @@
             <input ng-model="bucketCtrl.bucket_enable_fs" id="bucket_enable_fs" name="bucket_enable_fs" type="checkbox" />
           </span>
         </div>
+        <br />
       </div>
-      <br />
-      <div class="field">
+      <div class="field" ng-if="menu=='create-s3'">
         <div class="input-group">
           <input type="text" class="form-control" value="Enable compliance" readonly="readonly">
           <span class="input-group-addon">
             <input ng-model="bucketCtrl.bucket_enable_compliance" id="bucket_enable_compliance" name="bucket_enable_compliance" type="checkbox" />
           </span>
         </div>
+        <br />
       </div>
-      <br />
       <div class="field">
         <div class="input-group">
           <input type="text" class="form-control" value="Enable encryption" readonly="readonly">
@@ -57,8 +78,8 @@
             <input ng-model="bucketCtrl.bucket_enable_encryption" id="bucket_enable_encryption" name="bucket_enable_encryption" type="checkbox" />
           </span>
         </div>
+        <br />
       </div>
-      <br />
       <div class="actions">
         <button class="btn btn-primary has-spinner" ng-disabled="loadingService.isLoading()" ng-class="{'active': loadingService.isLoading()}">
           <span class="spinner"><i class="fa fa-refresh fa-spin"></i></span>

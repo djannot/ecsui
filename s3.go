@@ -14,7 +14,8 @@ import (
   "strconv"
   "time"
   "bytes"
-  )
+)
+
 var b64 = base64.StdEncoding
 // ----------------------------------------------------------------------------
 // S3 signing (http://goo.gl/G1LrK)
@@ -121,12 +122,6 @@ type EndPoint struct {
   Port int
   Path string
   RawQuery string
-}
-
-type Response struct {
-  Code int
-  Body string
-  Headers http.Header
 }
 
 type PreparedS3Request struct {
@@ -236,7 +231,8 @@ func s3Request(s3 S3, bucket string, method string, path string, headers map[str
   response := Response{
     Code: resp.StatusCode,
     Body: data,
-    Headers: resp.Header,
+    RequestHeaders: req.Header,
+    ResponseHeaders: resp.Header,
   }
   return response, nil
 }

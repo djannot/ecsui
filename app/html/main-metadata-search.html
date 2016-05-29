@@ -13,7 +13,7 @@
       <br />
       <div ng-if="main.searchmetadata['MetadataSearchEnabled']==true">
         <ul class="list-group">
-          <li ng-repeat="metadata in main.searchmetadata['IndexableKeys']" ng-click="metadataSearchCtrl.search_query = metadataSearchCtrl.search_query + metadata['Name']" onclick="$('#search_query').focus()" class="list-group-item">{{ metadata["Name"] }} <span class="label label-default">{{ metadata["Datatype"] }}</span></li>
+          <li ng-repeat="metadata in main.searchmetadata['IndexableKeys']" ng-click="metadataSearchCtrl.search_query = metadataSearchCtrl.search_query + metadata['Name']" onclick="$('#search_query').focus()" class="list-group-item">{{ metadata["Name"] }} <span class="label label-default label-right">{{ metadata["Datatype"] }}</span></li>
         </ul>
       </div>
       <div ng-if="main.searchmetadata['MetadataSearchEnabled']==false" class="alert alert-warning">
@@ -22,7 +22,7 @@
       <div class="field" ng-if="main.searchmetadata['MetadataSearchEnabled']==true">
         <div class="input-group">
           <span class="input-group-addon">Query</span>
-          <input ng-model="metadataSearchCtrl.search_query" ng-required="true" class="form-control" id="search_query" name="search_query" type="text" />
+          <input ng-model="metadataSearchCtrl.search_query" ng-required="true" class="form-control" id="search_query" name="search_query" type="text" placeholder="ex: Size>0 and x-amz-meta-custom1<100" />
         </div>
         <br />
       </div>
@@ -37,6 +37,15 @@
         <div class="input-group">
           <span class="input-group-addon">Sorted by</span>
           <input ng-model="metadataSearchCtrl.search_sorted_by" class="form-control" id="search_sorted_by" name="search_sorted_by" type="text" />
+        </div>
+        <br />
+      </div>
+      <div class="field">
+        <div class="input-group">
+          <input type="text" class="form-control" value="Returns all the object metadata" readonly="readonly">
+          <span class="input-group-addon">
+            <input ng-model="metadataSearchCtrl.search_return_all_metadata" id="search_return_all_metadata" name="search_return_all_metadata" type="checkbox" />
+          </span>
         </div>
         <br />
       </div>
