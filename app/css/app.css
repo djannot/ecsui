@@ -129,3 +129,10 @@ div.space {
 .label-right {
   float: right;
 }
+
+.panel > .subpanel-heading {
+    background-image: none;
+    background-color: white;
+    color: black;
+
+}

@@ -1,8 +1,8 @@
-/*
 $(document).ready(function() {
-
+  $('[data-toggle="tooltip"]').tooltip();
+  $('[data-toggle="popover"]').popover();
 });
-*/
+
 
 if (!String.prototype.encodeHTML) {
   String.prototype.encodeHTML = function () {
@@ -357,6 +357,7 @@ function formatXml(xml) {
                 } else {
                   responseCodeButton.addClass("btn-danger");
                 }
+                responseCodeButton.attr('data-content', formatXml($scope.main.apis.response["body"]).encodeHTML());
                 responseCodeButton.html($scope.main.apis.response["code"]);
                 //$('html, body').animate({scrollTop: $('#apis_request')}, 100);
               }).
@@ -402,11 +403,16 @@ function formatXml(xml) {
                       id => '` + $scope.main.credentials['access-key'] + `',<br />
                       key => '` + $scope.main.credentials['secret-key'] + `'<br />
                     },<br />
+                    @endpoints = ('` + $scope.main.credentials['endpoint'].split('/')[2].split(':')[0] + `', )
                   );
                 </li>
               </ul>
               `;
-              cli += " " + $scope.main.credentials['endpoint'] + "/" + $("#apis_bucket").val() + elements["api_examples_path_" + i + "_" + j];
+              if($("#apis_bucket").val() == "") {
+                cli += " -vv '" + $scope.main.credentials['endpoint'] + elements["api_examples_path_" + i + "_" + j] + "'";
+              } else {
+                cli += " -vv '" + $scope.main.credentials['endpoint'] + "/" + $("#apis_bucket").val() + elements["api_examples_path_" + i + "_" + j] + "'";
+              }
             } else if(api == "swift") {
               login = `
                 Execute the following commands to login:
@@ -437,6 +443,35 @@ function formatXml(xml) {
                 </li>
               </ul>
             `;
+            $('#message').modal({show: true});
+          }
+        };
+        this.showResponse = function() {
+          if($scope.main.apis.response['response_headers']) {
+            $scope.main.messagetitle = "Response";
+            //$scope.main.messagebody = "<pre><code>" + formatXml($scope.main.apis.response["body"]).encodeHTML() + "</code></pre>";;
+            var content = `
+            <h2>Response headers</h2>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Value</th>
+                </tr>
+              </thead>
+              <tbody>
+            `;
+            Object.keys($scope.main.apis.response["response_headers"]).forEach (function(key) {
+              content += "<tr><td>" + key + "</td>";
+              content += "<td>" + $scope.main.apis.response["response_headers"][key][0] + "</td></tr>";
+            });
+            content += `
+              </tbody>
+            </table>
+            <h2>Response body</h2>
+            `;
+            content += `<div class="wordbreak">` + formatXml($scope.main.apis.response["body"]) + `</div>`;
+            $scope.main.messagebody = content;
             $('#message').modal({show: true});
           }
         };

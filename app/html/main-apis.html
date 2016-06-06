@@ -27,6 +27,7 @@
         <div class="input-group">
           <span class="input-group-addon">Bucket Name</span>
           <select ng-model="apisCtrl.apis_bucket" class="form-control" id="apis_bucket" name="apis_bucket">
+            <option value=""></option>
             <option ng-repeat="bucket in main.buckets" value="{{ bucket }}">{{ bucket }}</option>
           </select>
         </div>

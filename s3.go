@@ -23,6 +23,7 @@ var s3ParamsToSign = map[string]bool{
   "acl": true,
   "cors": true, // Due to an ECS bug
   "delete": true,
+  "lifecycle": true,
   "location": true,
   "logging": true,
   "notification": true,
