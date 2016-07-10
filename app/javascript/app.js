@@ -377,15 +377,23 @@ function formatXml(xml) {
               cli = "curl -k -X " + $("#api_examples_method_" + i + "_" + j).val();
             }
             if(elements["api_examples_data_" + i + "_" + j]) {
-              body += `
-                Create a file called data.txt with the following content:
-                <ul class="list-group">
-                  <li class="list-group-item">
-                    ` + elements["api_examples_data_" + i + "_" + j].replace(/\n/, "<br />") + `
-                  </li>
-                </ul>
-              `;
-              cli += " -d @data.txt"
+              if((api == "s3") || (api == "ecs")) {
+                body += `
+                  Create a file called data.txt with the following content:
+                  <ul class="list-group">
+                    <li class="list-group-item">
+                      ` + elements["api_examples_data_" + i + "_" + j].replace(/\n/, "<br />") + `
+                    </li>
+                  </ul>
+                `;
+              }
+              if(api == "s3") {
+                cli += " -d @data.txt";
+              } else if(api == "ecs") {
+                cli += ` -T data.txt`;
+              } else {
+                cli += ` -H "Content-Type: plain/text" --data-binary "` + elements["api_examples_data_" + i + "_" + j] + `"`;
+              }
             }
             if(elements["api_examples_range_" + i + "_" + j] != "") {
               cli += " -H 'Range:" + elements["api_examples_range_" + i + "_" + j] + "'";
@@ -418,12 +426,12 @@ function formatXml(xml) {
                 Execute the following commands to login:
                 <ul class="list-group">
                   <li class="list-group-item">
-                    export TOKEN=\`curl -s -k -i -H 'X-Auth-User:` + $("#apis_user").val() + `' -H 'X-Auth-Key:` + $("#apis_password").val() + `' ` + $("#apis_endpoint").val() + `/auth/v1.0 | grep -i X-Auth-Token | awk '{ print $2 }' | sed 's/^M//g'\`<br />
-                    export STORAGEURL=\`curl -s -k -i -H 'X-Auth-User:` + $("#apis_user").val() + `' -H 'X-Auth-Key:` + $("#apis_password").val() + `' ` + $("#apis_endpoint").val() + `/auth/v1.0 | grep -i X-Storage-Url | awk '{ print $2 }' | sed 's/^M//g'\`
+                    export TOKEN=\`curl -s -k -i -H 'X-Auth-User:` + $("#apis_user").val() + `' -H 'X-Auth-Key:` + $("#apis_password").val() + `' ` + $("#apis_endpoint").val() + `/auth/v1.0 | grep -i X-Auth-Token | awk '{ print $2 }' | tr -d '\\015'\`<br />
+                    export STORAGEURL=\`curl -s -k -i -H 'X-Auth-User:` + $("#apis_user").val() + `' -H 'X-Auth-Key:` + $("#apis_password").val() + `' ` + $("#apis_endpoint").val() + `/auth/v1.0 | grep -i X-Storage-Url | awk '{ print $2 }' | tr -d '\\015'\`
                   </li>
                 </ul>
               `
-              cli += " -H X-Auth-Token:$TOKEN $STORAGEURL" + elements["api_examples_path_" + i + "_" + j];
+              cli += ` -H "X-Auth-Token:$TOKEN" -vv "$STORAGEURL` + elements["api_examples_path_" + i + "_" + j] + `"`;
             } else if(api == "ecs") {
               login = `
                 Execute the following command to login:
