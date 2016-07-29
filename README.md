@@ -27,7 +27,7 @@ RUN
 --------------
 
 To start the application, run:
-docker run -p 8080:80 ecsui
+docker run -d -p 80:80 ecsui
 
 The application will be available on http://\<ip of application host\>
 
