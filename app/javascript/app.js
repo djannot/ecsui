@@ -101,6 +101,7 @@ function formatXml(xml) {
     $scope.main.apis = {};
     $scope.main.apis.headers = {};
     $scope.main.apis.response = {};
+    $scope.main.examples.response = {};
     $scope.main.swiftextensions = {};
     $scope.main.swiftextensions.headers = {};
     $scope.main.swiftextensions.response = {};
@@ -300,7 +301,16 @@ function formatXml(xml) {
         };
         this.executeStep = function(i, j, api, execute) {
           //$('html, body').animate({scrollTop: $('#apis_request')}, 100);
-          $scope.main.apis.response = {};
+          if(!$scope.main.examples.response) {
+            $scope.main.examples.response = {};
+          }
+          if(!$scope.main.examples.response[api]) {
+            $scope.main.examples.response[api] = {};
+          }
+          if(!$scope.main.examples.response[api][i]) {
+            $scope.main.examples.response[api][i] = {};
+          }
+          $scope.main.examples.response[api][i][j] = {};
           var customHeaders = {};
           var expectedResponseCode = $("input[id^='api_examples_expected_response_code_" + i + "_" + j + "']").val();
           var responseCodeButton = $("#api_examples_response_code_" + i + "_" + j);
@@ -351,6 +361,7 @@ function formatXml(xml) {
             }).
               success(function(data, status, headers, config) {
                 $scope.main.apis.response = data;
+                $scope.main.examples.response[api][i][j] = data;
                 $scope.main.apis.response["body"] = "<pre><code>" + formatXml($scope.main.apis.response["body"]).encodeHTML() + "</code></pre>";
                 if($scope.main.apis.response["code"] == expectedResponseCode) {
                   responseCodeButton.addClass("btn-success");
@@ -454,10 +465,9 @@ function formatXml(xml) {
             $('#message').modal({show: true});
           }
         };
-        this.showResponse = function() {
-          if($scope.main.apis.response['response_headers']) {
+        this.showResponse = function(i, j, api) {
+          if($scope.main.examples.response && $scope.main.examples.response[api] && $scope.main.examples.response[api][i] && $scope.main.examples.response[api][i][j]) {
             $scope.main.messagetitle = "Response";
-            //$scope.main.messagebody = "<pre><code>" + formatXml($scope.main.apis.response["body"]).encodeHTML() + "</code></pre>";;
             var content = `
             <h2>Response headers</h2>
             <table class="table">
@@ -469,17 +479,21 @@ function formatXml(xml) {
               </thead>
               <tbody>
             `;
-            Object.keys($scope.main.apis.response["response_headers"]).forEach (function(key) {
+            Object.keys($scope.main.examples.response[api][i][j]["response_headers"]).forEach (function(key) {
               content += "<tr><td>" + key + "</td>";
-              content += "<td>" + $scope.main.apis.response["response_headers"][key][0] + "</td></tr>";
+              content += "<td>" + $scope.main.examples.response[api][i][j]["response_headers"][key][0] + "</td></tr>";
             });
             content += `
               </tbody>
             </table>
             <h2>Response body</h2>
             `;
-            content += `<div class="wordbreak">` + formatXml($scope.main.apis.response["body"]) + `</div>`;
+            content += `<div class="wordbreak">` + formatXml($scope.main.examples.response[api][i][j]["body"]) + `</div>`;
             $scope.main.messagebody = content;
+            $('#message').modal({show: true});
+          } else {
+            $scope.main.messagetitle = "Error";
+            $scope.main.messagebody = "You need to execute the step first";
             $('#message').modal({show: true});
           }
         };
