@@ -49,7 +49,7 @@ deploy:
     box: google/golang
     steps:
     # use the scratch step to build a container from scratch based on the files present
-    - internal/docker-scratch-push:
+    - internal/docker-push:
         username: $DOCKER_HUB_USERNAME
         password: $DOCKER_HUB_PASSWORD
         cmd: ./ecsui
