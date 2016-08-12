@@ -414,7 +414,7 @@ function formatXml(xml) {
             });
             if(api == "s3") {
               login += `
-              Create a file .s3curl with 0600 permissions and the following conntent:
+              Create a file .s3curl with 0600 permissions and the following content:
               <ul class="list-group">
                 <li class="list-group-item">
                   %awsSecretAccessKeys = (<br />
