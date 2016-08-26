@@ -42,6 +42,8 @@ var s3ParamsToSign = map[string]bool{
   "response-cache-control": true,
   "response-content-disposition": true,
   "response-content-encoding": true,
+  "searchmetadata": true,
+  "query": true,
 }
 
 type Bucket struct {
