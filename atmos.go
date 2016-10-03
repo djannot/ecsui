@@ -13,8 +13,7 @@ import (
 )
 
 func atmosRequest(endpoint string, user string, password string, subtenant string, method string, path string, headers map[string][]string, body string) (Response, error) {
-  headersToSend := make(map[string][]string)
-  log.Print(subtenant)
+  headersToSend := headers
   if subtenant == "" {
     headersToSend["x-emc-uid"] = []string{user}
   } else {

@@ -1316,13 +1316,99 @@
       ]
     },
     {
-      "name":"Centera migration",
-      "api":"ecs",
+      "name":"Simple objectspace test",
+      "api":"atmos",
       "steps":[
         {
-          "description":"Get ECS Replication Group id",
+          "description":"Create an Atmos subtenant",
+          "expected_response_code":"204",
+          "path":"/rest/subtenant",
+          "range":"",
+          "data":"",
+          "method":"PUT",
+          "headers":{
+          }
+        },
+        {
+          "description":"Create an object",
+          "expected_response_code":"201",
+          "path":"/rest/objects",
+          "range":"",
+          "data":"TEST",
+          "method":"POST",
+          "headers":{
+          }
+        },
+        {
+          "description":"Read the object",
           "expected_response_code":"200",
-          "path":"/vdc/data-service/vpools",
+          "path":"/rest/objects/XXXObject IdXXX",
+          "range":"",
+          "data":"",
+          "method":"GET",
+          "headers":{
+          },
+          "inputs":[
+            "Object Id"
+          ]
+        },
+        {
+          "description":"Delete the object",
+          "expected_response_code":"204",
+          "path":"/rest/objects/XXXObject IdXXX",
+          "range":"",
+          "data":"",
+          "method":"DELETE",
+          "headers":{
+          },
+          "inputs":[
+            "Object Id"
+          ]
+        },
+        {
+          "description":"Delete the subtenant",
+          "expected_response_code":"204",
+          "path":"/rest/subtenants/XXXSubtenant IdXXX",
+          "range":"",
+          "data":"",
+          "method":"DELETE",
+          "headers":{
+          },
+          "inputs":[
+            "Subtenant Id"
+          ]
+        }
+      ]
+    },
+    {
+      "name":"Create an object with a specific object Id",
+      "api":"atmos",
+      "steps":[
+        {
+          "description":"Create an Atmos subtenant",
+          "expected_response_code":"204",
+          "path":"/rest/subtenant",
+          "range":"",
+          "data":"",
+          "method":"PUT",
+          "headers":{
+          }
+        },
+        {
+          "description":"Create an object with a specific object Id",
+          "expected_response_code":"201",
+          "path":"/rest/objects",
+          "range":"",
+          "data":"TEST",
+          "method":"POST",
+          "headers":{
+            "x-emc-object-id":"01234567890123456789012345678901234567890123"
+          }
+        },
+        {
+          "description":"Read the object",
+          "expected_response_code":"200",
+          "path":"/rest/objects/01234567890123456789012345678901234567890123",
           "range":"",
           "data":"",
           "method":"GET",
@@ -1330,23 +1416,98 @@
           }
         },
         {
-          "description":"Create the transformation",
-          "expected_response_code":"200",
-          "path":"/object/transformation",
+          "description":"Delete the object",
+          "expected_response_code":"204",
+          "path":"/rest/objects/01234567890123456789012345678901234567890123",
           "range":"",
-          "data":"{\n\"type\": \"centera\",\n\"name\": \"Centera Transformation\",\n\"description\": \"Centera transformation\",\n\"replication_group\": \"XXXReplication GroupXXX\",\n\"admin\": \"XXXCentera UserXXX\",\n\"password\": \"XXXCentera PasswordXXX\",\n\"management_ip\": \"XXXCentera Management IPXXX\",\n\"port\": 3682,\n\"access_ip\": \"XXXCentera Access IPXXX\",\n\"datagram_port\": 3218\n}",
-          "method":"POST",
+          "data":"",
+          "method":"DELETE",
           "headers":{
-            "x-amz-meta-key1":"XXXReplication GroupXXX",
-            "x-amz-meta-key2":"XXXCentera UserXXX",
-            "Content-Type":"application/json"
+          }
+        },
+        {
+          "description":"Delete the subtenant",
+          "expected_response_code":"204",
+          "path":"/rest/subtenants/XXXSubtenant IdXXX",
+          "range":"",
+          "data":"",
+          "method":"DELETE",
+          "headers":{
           },
           "inputs":[
-            "Replication Group",
-            "Centera User",
-            "Centera Password",
-            "Centera Management IP",
-            "Centera Access IP"
+            "Subtenant Id"
+          ]
+        }
+      ]
+    },
+    {
+      "name":"Simple namespace test",
+      "api":"atmos",
+      "steps":[
+        {
+          "description":"Create an Atmos subtenant",
+          "expected_response_code":"204",
+          "path":"/rest/subtenant",
+          "range":"",
+          "data":"",
+          "method":"PUT",
+          "headers":{
+          }
+        },
+        {
+          "description":"Create an object",
+          "expected_response_code":"201",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"TEST",
+          "method":"POST",
+          "headers":{
+          }
+        },
+        {
+          "description":"List the objects",
+          "expected_response_code":"200",
+          "path":"/rest/namespace/",
+          "range":"",
+          "data":"",
+          "method":"GET",
+          "headers":{
+          }
+        },
+        {
+          "description":"Read the object",
+          "expected_response_code":"200",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"",
+          "method":"GET",
+          "headers":{
+          }
+        },
+        {
+          "description":"Delete the object",
+          "expected_response_code":"204",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"",
+          "method":"DELETE",
+          "headers":{
+          },
+          "inputs":[
+            "Object Id"
+          ]
+        },
+        {
+          "description":"Delete the subtenant",
+          "expected_response_code":"204",
+          "path":"/rest/subtenants/XXXSubtenant IdXXX",
+          "range":"",
+          "data":"",
+          "method":"DELETE",
+          "headers":{
+          },
+          "inputs":[
+            "Subtenant Id"
           ]
         }
       ]
