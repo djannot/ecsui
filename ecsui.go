@@ -428,7 +428,7 @@ func MetadataSearch(w http.ResponseWriter, r *http.Request) *appError {
   if err != nil {
     return &appError{err: err, status: http.StatusBadRequest, json: "Can't decode JSON data"}
   }
-  path := "/?query=" + query.Query
+  path := "/?query=" + strings.Replace(query.Query, "%20", " ", -1)
   if query.Marker != "" {
     path += "&marker=" + query.Marker
   }
