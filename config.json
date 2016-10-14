@@ -1316,6 +1316,324 @@
       ]
     },
     {
+      "name":"Appending data to an object",
+      "api":"atmos",
+      "steps":[
+        {
+          "description":"Create an Atmos subtenant",
+          "expected_response_code":"204",
+          "path":"/rest/subtenant",
+          "range":"",
+          "data":"",
+          "method":"PUT",
+          "headers":{
+          }
+        },
+        {
+          "description":"Create an object",
+          "expected_response_code":"201",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"FIRST",
+          "method":"POST",
+          "headers":{
+          }
+        },
+        {
+          "description":"Check the content of the object",
+          "expected_response_code":"200",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"",
+          "method":"GET",
+          "headers":{
+          }
+        },
+        {
+          "description":"Append data to an object",
+          "expected_response_code":"200",
+          "path":"/rest/namespace/object1",
+          "range":"bytes=-1-",
+          "data":"SECOND",
+          "method":"PUT",
+          "headers":{
+          }
+        },
+        {
+          "description":"Check that the data has been appended",
+          "expected_response_code":"200",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"",
+          "method":"GET",
+          "headers":{
+          }
+        },
+        {
+          "description":"Delete the object",
+          "expected_response_code":"204",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"",
+          "method":"DELETE",
+          "headers":{
+          }
+        },
+        {
+          "description":"Delete the subtenant",
+          "expected_response_code":"204",
+          "path":"/rest/subtenants/XXXSubtenant IdXXX",
+          "range":"",
+          "data":"",
+          "method":"DELETE",
+          "headers":{
+          },
+          "inputs":[
+            "Subtenant Id"
+          ]
+        }
+      ]
+    },
+    {
+      "name":"Updating a byte range within an object",
+      "api":"atmos",
+      "steps":[
+        {
+          "description":"Create an Atmos subtenant",
+          "expected_response_code":"204",
+          "path":"/rest/subtenant",
+          "range":"",
+          "data":"",
+          "method":"PUT",
+          "headers":{
+          }
+        },
+        {
+          "description":"Create an object",
+          "expected_response_code":"201",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"CREATED",
+          "method":"POST",
+          "headers":{
+          }
+        },
+        {
+          "description":"Check the content of the object",
+          "expected_response_code":"200",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"",
+          "method":"GET",
+          "headers":{
+          }
+        },
+        {
+          "description":"Update a byte range within an object",
+          "expected_response_code":"200",
+          "path":"/rest/namespace/object1",
+          "range":"bytes=0-2",
+          "data":"UPD",
+          "method":"PUT",
+          "headers":{
+          }
+        },
+        {
+          "description":"Check that the data has been updated",
+          "expected_response_code":"200",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"",
+          "method":"GET",
+          "headers":{
+          }
+        },
+        {
+          "description":"Delete the object",
+          "expected_response_code":"204",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"",
+          "method":"DELETE",
+          "headers":{
+          }
+        },
+        {
+          "description":"Delete the subtenant",
+          "expected_response_code":"204",
+          "path":"/rest/subtenants/XXXSubtenant IdXXX",
+          "range":"",
+          "data":"",
+          "method":"DELETE",
+          "headers":{
+          },
+          "inputs":[
+            "Subtenant Id"
+          ]
+        }
+      ]
+    },
+    {
+      "name":"Apply a retention to an object",
+      "api":"atmos",
+      "steps":[
+        {
+          "description":"Create an Atmos subtenant",
+          "expected_response_code":"204",
+          "path":"/rest/subtenant",
+          "range":"",
+          "data":"",
+          "method":"PUT",
+          "headers":{
+          }
+        },
+        {
+          "description":"Create an object with a retention of 60 seconds",
+          "expected_response_code":"201",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"ORIGINAL DATA",
+          "method":"POST",
+          "headers":{
+            "x-emc-retention-period":"60"
+          }
+        },
+        {
+          "description":"Check the content of the object",
+          "expected_response_code":"200",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"",
+          "method":"GET",
+          "headers":{
+          }
+        },
+        {
+          "description":"Check that object can't be modified",
+          "expected_response_code":"409",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"NEW DATA",
+          "method":"PUT",
+          "headers":{
+          }
+        },
+        {
+          "description":"Check that object can't be deleted",
+          "expected_response_code":"409",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"",
+          "method":"DELETE",
+          "headers":{
+          }
+        },
+        {
+          "description":"Check that the object can be deleted after 60 seconds",
+          "expected_response_code":"204",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"",
+          "method":"DELETE",
+          "headers":{
+          }
+        },
+        {
+          "description":"Delete the subtenant",
+          "expected_response_code":"204",
+          "path":"/rest/subtenants/XXXSubtenant IdXXX",
+          "range":"",
+          "data":"",
+          "method":"DELETE",
+          "headers":{
+          },
+          "inputs":[
+            "Subtenant Id"
+          ]
+        }
+      ]
+    },
+    {
+      "name":"Apply a retention to a bucket",
+      "api":"atmos",
+      "steps":[
+        {
+          "description":"Create an Atmos subtenant with a retention of 60 secondst",
+          "expected_response_code":"204",
+          "path":"/rest/subtenant",
+          "range":"",
+          "data":"",
+          "method":"PUT",
+          "headers":{
+            "x-emc-retention-period":"60"
+          }
+        },
+        {
+          "description":"Create an object",
+          "expected_response_code":"201",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"ORIGINAL DATA",
+          "method":"POST",
+          "headers":{
+          }
+        },
+        {
+          "description":"Check the content of the object",
+          "expected_response_code":"200",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"",
+          "method":"GET",
+          "headers":{
+          }
+        },
+        {
+          "description":"Check that object can't be modified",
+          "expected_response_code":"409",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"NEW DATA",
+          "method":"PUT",
+          "headers":{
+          }
+        },
+        {
+          "description":"Check that object can't be deleted",
+          "expected_response_code":"409",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"",
+          "method":"DELETE",
+          "headers":{
+          }
+        },
+        {
+          "description":"Check that the object can be deleted after 60 seconds",
+          "expected_response_code":"204",
+          "path":"/rest/namespace/object1",
+          "range":"",
+          "data":"",
+          "method":"DELETE",
+          "headers":{
+          }
+        },
+        {
+          "description":"Delete the subtenant",
+          "expected_response_code":"204",
+          "path":"/rest/subtenants/XXXSubtenant IdXXX",
+          "range":"",
+          "data":"",
+          "method":"DELETE",
+          "headers":{
+          },
+          "inputs":[
+            "Subtenant Id"
+          ]
+        }
+      ]
+    },
+    {
       "name":"Simple objectspace test",
       "api":"atmos",
       "steps":[
@@ -1424,78 +1742,6 @@
           "method":"DELETE",
           "headers":{
           }
-        },
-        {
-          "description":"Delete the subtenant",
-          "expected_response_code":"204",
-          "path":"/rest/subtenants/XXXSubtenant IdXXX",
-          "range":"",
-          "data":"",
-          "method":"DELETE",
-          "headers":{
-          },
-          "inputs":[
-            "Subtenant Id"
-          ]
-        }
-      ]
-    },
-    {
-      "name":"Simple namespace test",
-      "api":"atmos",
-      "steps":[
-        {
-          "description":"Create an Atmos subtenant",
-          "expected_response_code":"204",
-          "path":"/rest/subtenant",
-          "range":"",
-          "data":"",
-          "method":"PUT",
-          "headers":{
-          }
-        },
-        {
-          "description":"Create an object",
-          "expected_response_code":"201",
-          "path":"/rest/namespace/object1",
-          "range":"",
-          "data":"TEST",
-          "method":"POST",
-          "headers":{
-          }
-        },
-        {
-          "description":"List the objects",
-          "expected_response_code":"200",
-          "path":"/rest/namespace/",
-          "range":"",
-          "data":"",
-          "method":"GET",
-          "headers":{
-          }
-        },
-        {
-          "description":"Read the object",
-          "expected_response_code":"200",
-          "path":"/rest/namespace/object1",
-          "range":"",
-          "data":"",
-          "method":"GET",
-          "headers":{
-          }
-        },
-        {
-          "description":"Delete the object",
-          "expected_response_code":"204",
-          "path":"/rest/namespace/object1",
-          "range":"",
-          "data":"",
-          "method":"DELETE",
-          "headers":{
-          },
-          "inputs":[
-            "Object Id"
-          ]
         },
         {
           "description":"Delete the subtenant",
