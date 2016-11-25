@@ -379,7 +379,7 @@
         {
           "description":"Create a bucket",
           "expected_response_code":"200",
-          "path":"/testbucket2",
+          "path":"/testbucket3",
           "range":"",
           "data":"",
           "method":"PUT",
@@ -389,7 +389,7 @@
         {
           "description":"Apply an expiration to the bucket",
           "expected_response_code":"200",
-          "path":"/testbucket2?lifecycle",
+          "path":"/testbucket3?lifecycle",
           "range":"",
           "data":"<LifecycleConfiguration><Rule><ID>expires in a day</ID><Prefix></Prefix><Status>Enabled</Status><Expiration><Days>1</Days></Expiration></Rule></LifecycleConfiguration>",
           "method":"PUT",
@@ -400,7 +400,7 @@
         {
           "description":"Check the lifecyle policy of to the bucket",
           "expected_response_code":"200",
-          "path":"/testbucket2?lifecycle",
+          "path":"/testbucket3?lifecycle",
           "range":"",
           "data":"",
           "method":"GET",
@@ -420,7 +420,7 @@
         {
           "description":"Check the content of the object",
           "expected_response_code":"200",
-          "path":"/testbucket2/key1",
+          "path":"/testbucket3/key1",
           "range":"",
           "data":"",
           "method":"GET",
@@ -428,9 +428,9 @@
           }
         },
         {
-          "description":"Check that the object doesn't exist anymore",
+          "description":"2 days later, check that the object doesn't exist anymore",
           "expected_response_code":"404",
-          "path":"/testbucket2/key1",
+          "path":"/testbucket3/key1",
           "range":"",
           "data":"",
           "method":"GET",
@@ -440,7 +440,7 @@
         {
           "description":"Delete the bucket",
           "expected_response_code":"204",
-          "path":"/testbucket2",
+          "path":"/testbucket3",
           "range":"",
           "data":"",
           "method":"DELETE",
@@ -649,6 +649,133 @@
           "description":"Delete the bucket",
           "expected_response_code":"204",
           "path":"/testbucket1",
+          "range":"",
+          "data":"",
+          "method":"DELETE",
+          "headers":{
+          }
+        }
+      ]
+    },
+    {
+      "name":"S3 versioning with expiration of old versions",
+      "api":"s3",
+      "steps":[
+        {
+          "description":"Create a bucket",
+          "expected_response_code":"200",
+          "path":"/testbucket4",
+          "range":"",
+          "data":"",
+          "method":"PUT",
+          "headers":{
+          }
+        },
+        {
+          "description":"Activate the versioning for the bucket",
+          "expected_response_code":"200",
+          "path":"/testbucket4?versioning",
+          "range":"",
+          "data":"<?xml version='1.0' encoding='UTF-8' standalone='yes'?><VersioningConfiguration xmlns='http://s3.amazonaws.com/doc/2006-03-01/'><Status>Enabled</Status></VersioningConfiguration>",
+          "method":"PUT",
+          "headers":{
+          }
+        },
+        {
+          "description":"Check that the versioning has been activated for the bucket",
+          "expected_response_code":"200",
+          "path":"/testbucket4?versioning",
+          "range":"",
+          "data":"",
+          "method":"GET",
+          "headers":{
+          }
+        },
+        {
+          "description":"Apply an expiration of old versions to the bucket",
+          "expected_response_code":"200",
+          "path":"/testbucket4?lifecycle",
+          "range":"",
+          "data":"<LifecycleConfiguration><Rule><ID>expires in a day</ID><Prefix></Prefix><Status>Enabled</Status><NoncurrentVersionExpiration><NoncurrentDays>1</NoncurrentDays></NoncurrentVersionExpiration></Rule></LifecycleConfiguration>",
+          "method":"PUT",
+          "headers":{
+            "Content-Type":"application/xml"
+          }
+        },
+        {
+          "description":"Check the lifecyle policy of to the bucket",
+          "expected_response_code":"200",
+          "path":"/testbucket4?lifecycle",
+          "range":"",
+          "data":"",
+          "method":"GET",
+          "headers":{
+          }
+        },
+        {
+          "description":"Create an object",
+          "expected_response_code":"200",
+          "path":"/testbucket4/key1",
+          "range":"",
+          "data":"VERSION 1",
+          "method":"PUT",
+          "headers":{
+          }
+        },
+        {
+          "description":"Check the content of the object",
+          "expected_response_code":"200",
+          "path":"/testbucket4/key1",
+          "range":"",
+          "data":"",
+          "method":"GET",
+          "headers":{
+          }
+        },
+        {
+          "description":"Delete the object",
+          "expected_response_code":"204",
+          "path":"/testbucket4/key1",
+          "range":"",
+          "data":"",
+          "method":"DELETE",
+          "headers":{
+          }
+        },
+        {
+          "description":"Check the content of the bucket",
+          "expected_response_code":"200",
+          "path":"/testbucket4",
+          "range":"",
+          "data":"",
+          "method":"GET",
+          "headers":{
+          }
+        },
+        {
+          "description":"Check that there's a delete marker",
+          "expected_response_code":"200",
+          "path":"/testbucket4?versions",
+          "range":"",
+          "data":"",
+          "method":"GET",
+          "headers":{
+          }
+        },
+        {
+          "description":"2 days later, check that there's no delete marker remaining",
+          "expected_response_code":"200",
+          "path":"/testbucket4?versions",
+          "range":"",
+          "data":"",
+          "method":"GET",
+          "headers":{
+          }
+        },
+        {
+          "description":"Delete the bucket",
+          "expected_response_code":"204",
+          "path":"/testbucket4",
           "range":"",
           "data":"",
           "method":"DELETE",
@@ -1150,13 +1277,14 @@
           }
         },
         {
-          "description":"Create an object",
+          "description":"Create an object with a retention of 60 seconds",
           "expected_response_code":"201",
           "path":"/testcontainer1/key1",
           "range":"",
           "data":"ORIGINAL DATA",
           "method":"PUT",
           "headers":{
+            "x-emc-retention-period":"60"
           }
         },
         {

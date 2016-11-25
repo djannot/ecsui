@@ -257,6 +257,19 @@ function formatXml(xml) {
     };
   });
 
+  app.directive("mainEcsBilling", function() {
+    return {
+      restrict: 'E',
+      templateUrl: "app/html/main-ecs-billing.html",
+      controller: ['$http', '$scope', 'mainService', function($http, $scope, mainService) {
+        this.list = function() {
+          window.alert("ok");
+        };
+      }],
+      controllerAs: "ecsBillingCtrl"
+    };
+  });
+
   app.directive("mainApis", function() {
     return {
       restrict: 'E',
