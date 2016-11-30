@@ -2,7 +2,7 @@ package main
 
 import (
   "crypto/tls"
-  "log"
+  "errors"
   "net/http"
   "bytes"
 )
@@ -24,6 +24,9 @@ func swiftRequest(endpoint string, user string, password string, container strin
   if err != nil {
     return Response{}, err
   }
+  if respLogin.StatusCode == 401 {
+    return Response{}, errors.New("Unauthorized")
+  }
   headers["X-Auth-Token"] = respLogin.Header["X-Auth-Token"]
   storageUrl := ""
   if container == "" {
@@ -31,7 +34,6 @@ func swiftRequest(endpoint string, user string, password string, container strin
   } else {
     storageUrl = respLogin.Header["X-Storage-Url"][0] + "/" + container + path
   }
-  log.Print(storageUrl)
   req, err := http.NewRequest(method, storageUrl, bytes.NewBufferString(body))
   if err != nil {
     return Response{}, err

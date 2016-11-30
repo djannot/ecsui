@@ -92,7 +92,12 @@ function formatXml(xml) {
   app.controller('MainController', ['$http', '$animate', '$scope', 'loadingService', 'mainService', function($http, $animate, $scope, loadingService, mainService) {
     $scope.main = mainService;
     loadingCount = 0;
+    $scope.main.s3login = $('#s3login').val();
     $scope.loadingService = loadingService;
+    $scope.main.replicationgroups = [];
+    $scope.main.defaultreplicationgroup = "";
+    $scope.main.atmossubtenants = [];
+    $scope.main.swiftcontainers = [];
     $scope.main.buckets = [];
     $scope.main.examples = {};
     $scope.main.credentials = {};
@@ -107,14 +112,9 @@ function formatXml(xml) {
     $scope.main.swiftextensions.response = {};
     $scope.main.menu = "";
     $scope.main.api = "";
-    $http.get('/api/v1/buckets').success(function(data) {
-      $scope.main.buckets = data;
-    }).
-    error(function(data, status, headers, config) {
-      $scope.main.messagetitle = "Error";
-      $scope.main.messagebody = data;
-      $('#message').modal('show');
-    });
+    $scope.main.billing = {};
+    $scope.main.swiftendpoint = "";
+    $scope.main.atmosendpoint = "";
     $http.get('/api/v1/examples').success(function(data) {
       $scope.main.examples = data;
     }).
@@ -123,14 +123,45 @@ function formatXml(xml) {
       $scope.main.messagebody = data;
       $('#message').modal('show');
     });
-    $http.get('/api/v1/credentials').success(function(data) {
-      $scope.main.credentials = data;
-    }).
-    error(function(data, status, headers, config) {
-      $scope.main.messagetitle = "Error";
-      $scope.main.messagebody = data;
-      $('#message').modal('show');
-    });
+    if($scope.main.s3login == "true") {
+      $http.get('/api/v1/buckets').success(function(data) {
+        $scope.main.buckets = data;
+      }).
+      error(function(data, status, headers, config) {
+        $scope.main.messagetitle = "Error";
+        $scope.main.messagebody = data;
+        $('#message').modal('show');
+      });
+      $http.get('/api/v1/credentials').success(function(data) {
+        $scope.main.credentials = data;
+        var link = document.createElement('a');
+        link.setAttribute('href', data["endpoint"]);
+        if((link.port == 9020)||(link.port == 9021)) {
+          $scope.main.swiftendpoint = link.protocol + "//" + link.hostname + ":" + (parseInt(link.port) + 4) + "/auth/v1.0";
+          $scope.main.atmosendpoint = link.protocol + "//" + link.hostname + ":" + (parseInt(link.port) + 2);
+        }
+      }).
+      error(function(data, status, headers, config) {
+        $scope.main.messagetitle = "Error";
+        $scope.main.messagebody = data;
+        $('#message').modal('show');
+      });
+      $http.get('/api/v1/ecs/info').success(function(data) {
+        $scope.main.defaultreplicationgroup = data["default-replication-group"];
+        $scope.main.replicationgroups = data["user-allowed-replication-groups"];
+        if(data["atmos-subtenants"]) {
+          $scope.main.atmossubtenants = data["atmos-subtenants"];
+        }
+        if(data["swift-containers"]) {
+          $scope.main.swiftcontainers = data["swift-containers"];
+        }
+      }).
+      error(function(data, status, headers, config) {
+        $scope.main.messagetitle = "Error";
+        $scope.main.messagebody = data;
+        $('#message').modal('show');
+      });
+    }
   }]);
 
   app.factory('mainService', function() {
@@ -166,8 +197,7 @@ function formatXml(xml) {
         this.create = function(api) {
           $http.post('/api/v1/bucket', {
             bucket_api: api,
-            bucket_endpoint: this.bucket_endpoint,
-            bucket_user: this.bucket_user,
+            bucket_endpoint: $("#bucket_endpoint").val(),
             bucket_password: this.bucket_password,
             bucket_name: this.bucket_name,
             bucket_replication_group: this.bucket_replication_group,
@@ -181,14 +211,22 @@ function formatXml(xml) {
               $scope.main.messagetitle = "Success";
               $scope.main.messagebody = "Bucket/container/subtenant " + data + " created";
               $('#message').modal({show: true});
-              $http.get('/api/v1/buckets').success(function(data) {
-                $scope.main.buckets = data;
-              }).
-              error(function(data, status, headers, config) {
-                $scope.main.messagetitle = "Error";
-                $scope.main.messagebody = data;
-                $('#message').modal('show');
-              });
+              if(api == "s3") {
+                $http.get('/api/v1/buckets').success(function(data) {
+                  $scope.main.buckets = data;
+                }).
+                error(function(data, status, headers, config) {
+                  $scope.main.messagetitle = "Error";
+                  $scope.main.messagebody = data;
+                  $('#message').modal('show');
+                });
+              }
+              if(api == "atmos") {
+                $scope.main.atmossubtenants.push(data);
+              }
+              if(api == "swift") {
+                $scope.main.swiftcontainers.push(data);
+              }
             }).
             error(function(data, status, headers, config) {
               $scope.main.result = [];
@@ -262,11 +300,79 @@ function formatXml(xml) {
       restrict: 'E',
       templateUrl: "app/html/main-ecs-billing.html",
       controller: ['$http', '$scope', 'mainService', function($http, $scope, mainService) {
-        this.list = function() {
-          window.alert("ok");
+        this.getNamespaces = function() {
+          $scope.main.billing["namespaces"] = {};
+          $http.get('/api/v1/billing/namespaces').
+            success(function(data, status, headers, config) {
+              $scope.main.billing["namespaces"] = data;
+            }).
+            error(function(data, status, headers, config) {
+              $scope.main.messagetitle = "Error";
+              $scope.main.messagebody = data;
+              $('#message').modal({show: true});
+          });
+        };
+        this.getUsers = function() {
+          $scope.main.billing["users"] = {};
+          $scope.main.billing["buckets"] = {};
+          $scope.main.billing["current_usage"] = {};
+          $http.get('/api/v1/billing/users/' + this.namespace).
+            success(function(data, status, headers, config) {
+              $scope.main.billing["users"] = data;
+            }).
+            error(function(data, status, headers, config) {
+              $scope.main.messagetitle = "Error";
+              $scope.main.messagebody = data;
+              $('#message').modal({show: true});
+          });
+        };
+        this.getBuckets = function() {
+          $scope.main.billing["buckets"] = {};
+          $scope.main.billing["current_usage"] = {};
+          $http.get('/api/v1/billing/buckets/' + this.namespace).
+            success(function(data, status, headers, config) {
+              $scope.main.billing["buckets"] = data;
+            }).
+            error(function(data, status, headers, config) {
+              $scope.main.messagetitle = "Error";
+              $scope.main.messagebody = data;
+              $('#message').modal({show: true});
+          });
+        };
+        this.getCurrentUsage = function(scope) {
+          $scope.main.billing["current_usage"] = {};
+          buckets = [];
+          if(scope == "bucket") {
+            buckets.push(this.bucket);
+          }
+          if(scope == "buckets") {
+            current_user = this.user;
+            current_user = $('#billing_user').val();
+            $scope.main.billing["buckets"]['object_bucket'].forEach(function(bucket) {
+              if(bucket["owner"] == current_user) {
+                buckets.push(bucket["name"]);
+              }
+            });
+          }
+          $http.post('/api/v1/billing/current_usage/' + this.namespace, {buckets: buckets, from: this.from, to: this.to, bucket_details: this.bucket_details}).
+            success(function(data, status, headers, config) {
+              $scope.main.billing["current_usage"] = data;
+            }).
+            error(function(data, status, headers, config) {
+              $scope.main.messagetitle = "Error";
+              $scope.main.messagebody = data;
+              $('#message').modal({show: true});
+          });
         };
       }],
       controllerAs: "ecsBillingCtrl"
+    };
+  });
+
+  app.directive("mainEcsBillingResult", function() {
+    return {
+      restrict: 'E',
+      templateUrl: "app/html/main-ecs-billing-result.html"
     };
   });
 
@@ -284,7 +390,7 @@ function formatXml(xml) {
           }
           $http.post('/api/v1/apis', {
             apis_api: api,
-            apis_endpoint: this.apis_endpoint,
+            apis_endpoint: $("#apis_endpoint").val(),
             apis_user: this.apis_user,
             apis_password: this.apis_password,
             apis_bucket: this.apis_bucket,

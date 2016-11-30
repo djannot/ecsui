@@ -1,8 +1,6 @@
 package main
 
 import (
-  "bytes"
-  "crypto/tls"
   "encoding/json"
   "encoding/xml"
   "io/ioutil"
@@ -23,6 +21,13 @@ import (
 var rendering *render.Render
 var store = sessions.NewCookieStore([]byte("session-key"))
 var config Config
+var ecs Ecs
+
+type Ecs struct {
+  User string
+  Password string
+  Endpoint string
+}
 
 type Response struct {
   Code int
@@ -70,24 +75,6 @@ func RecoverHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func LoginMiddleware(h http.Handler) http.Handler {
-  return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-    if r.URL.Path == "/login" || strings.HasPrefix(r.URL.Path, "/app") {
-      h.ServeHTTP(w, r)
-    } else {
-      session, err := store.Get(r, "session-name")
-      if err != nil {
-        rendering.HTML(w, http.StatusInternalServerError, "error", http.StatusInternalServerError)
-      }
-      if _, ok := session.Values["AccessKey"]; ok {
-        h.ServeHTTP(w, r)
-      } else {
-        http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
-      }
-    }
-  })
-}
-
 func main() {
   // Read the config file
   configFile, err := ioutil.ReadFile("./config.json")
@@ -110,18 +97,30 @@ func main() {
   } else {
     port = os.Getenv("PORT")
   }
+
+  ecs = Ecs{
+    User: os.Getenv("USER"),
+    Password: os.Getenv("PASSWORD"),
+    Endpoint: os.Getenv("ENDPOINT"),
+  }
+
   // See http://godoc.org/github.com/unrolled/render
   rendering = render.New(render.Options{Directory: "app/templates"})
   // See http://www.gorillatoolkit.org/pkg/mux
   router := mux.NewRouter()
   router.HandleFunc("/", Index)
   router.Handle("/api/v1/credentials", appHandler(Credentials)).Methods("GET")
+  router.Handle("/api/v1/ecs/info", appHandler(GetEcsInfo)).Methods("GET")
   router.Handle("/api/v1/buckets", appHandler(ListBuckets)).Methods("GET")
   router.Handle("/api/v1/examples", appHandler(GetExamples)).Methods("GET")
   router.Handle("/api/v1/bucket", appHandler(CreateBucket)).Methods("POST")
   router.Handle("/api/v1/metadatasearch", appHandler(MetadataSearch)).Methods("POST")
   router.Handle("/api/v1/searchmetadata", appHandler(SearchMetadata)).Methods("POST")
   router.Handle("/api/v1/apis", appHandler(Apis)).Methods("POST")
+  router.Handle("/api/v1/billing/namespaces", appHandler(BillingGetNamespaces)).Methods("GET")
+  router.Handle("/api/v1/billing/users/{namespace}", appHandler(BillingGetUsers)).Methods("GET")
+  router.Handle("/api/v1/billing/buckets/{namespace}", appHandler(BillingGetBuckets)).Methods("GET")
+  router.Handle("/api/v1/billing/current_usage/{namespace}", appHandler(BillingGetCurrentUsage)).Methods("POST")
   router.HandleFunc("/login", Login)
   router.HandleFunc("/logout", Logout)
   router.PathPrefix("/app/").Handler(http.StripPrefix("/app/", http.FileServer(http.Dir("app"))))
@@ -131,126 +130,19 @@ func main() {
 	log.Printf("Listening on port " + port)
 }
 
-// To parse GET /object/secret-keys output
-type UserSecretKeysResult struct {
-  XMLName xml.Name `xml:"user_secret_keys"`
-  SecretKey1 string `xml:"secret_key_1"`
-  SecretKey2 string `xml:"secret_key_2"`
-}
-
-type UserSecretKeyResult struct {
-  XMLName xml.Name `xml:"user_secret_key"`
-  SecretKey string `xml:"secret_key"`
-}
-
-// Login using an AD or object user
-func Login(w http.ResponseWriter, r *http.Request) {
-  // If informaton received from the form
-  if r.Method == "POST" {
-    session, err := store.Get(r, "session-name")
-    if err != nil {
-      rendering.HTML(w, http.StatusInternalServerError, "error", http.StatusInternalServerError)
-    }
-    r.ParseForm()
-    authentication := r.FormValue("authentication")
-    user := r.FormValue("user")
-    password := r.FormValue("password")
-    endpoint := r.FormValue("endpoint")
-    // For AD authentication, needs to retrieve the S3 secret key from ECS using the ECS management API
-    if authentication == "ad" {
-      url, err := url.Parse(endpoint)
-      if err != nil{
-          rendering.HTML(w, http.StatusOK, "login", "Check the endpoint")
-      }
-      hostname := url.Host
-      if strings.Contains(hostname, ":") {
-        hostname = strings.Split(hostname, ":")[0]
-      }
-      tr := &http.Transport{
-        TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-      }
-      client := &http.Client{Transport: tr}
-      // Get an authentication token from ECS
-      req, _ := http.NewRequest("GET", "https://" + hostname + ":4443/login", nil)
-      req.SetBasicAuth(user, password)
-      resp, err := client.Do(req)
-      if err != nil{
-          log.Print(err)
-      }
-      if resp.StatusCode == 401 {
-        rendering.HTML(w, http.StatusOK, "login", "Check your crententials and that you're allowed to generate a secret key on ECS")
-      } else {
-        // Get the secret key from ECS
-        req, _ = http.NewRequest("GET", "https://" + hostname + ":4443/object/secret-keys", nil)
-        headers := map[string][]string{}
-        headers["X-Sds-Auth-Token"] = []string{resp.Header.Get("X-Sds-Auth-Token")}
-        req.Header = headers
-        resp, err = client.Do(req)
-        if err != nil{
-            log.Print(err)
-        }
-        buf := new(bytes.Buffer)
-        buf.ReadFrom(resp.Body)
-        secretKey := ""
-        userSecretKeysResult := &UserSecretKeysResult{}
-        xml.NewDecoder(buf).Decode(userSecretKeysResult)
-        secretKey = userSecretKeysResult.SecretKey1
-        // If a secret key doesn't exist yet for this object user, needs to generate it
-        if secretKey == "" {
-          req, _ = http.NewRequest("POST", "https://" + hostname + ":4443/object/secret-keys", bytes.NewBufferString("<secret_key_create_param></secret_key_create_param>"))
-          headers["Content-Type"] = []string{"application/xml"}
-          req.Header = headers
-          resp, err = client.Do(req)
-          if err != nil{
-              log.Print(err)
-          }
-          buf = new(bytes.Buffer)
-          buf.ReadFrom(resp.Body)
-          userSecretKeyResult := &UserSecretKeyResult{}
-          xml.NewDecoder(buf).Decode(userSecretKeyResult)
-          secretKey = userSecretKeyResult.SecretKey
-        }
-        session.Values["AccessKey"] = user
-        session.Values["SecretKey"] = secretKey
-        session.Values["Endpoint"] = endpoint
-        err = sessions.Save(r, w)
-        if err != nil {
-          rendering.HTML(w, http.StatusInternalServerError, "error", http.StatusInternalServerError)
-        }
-        http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-      }
-    // For an object user authentication, use the credentials as-is
-    } else {
-      session.Values["AccessKey"] = user
-      session.Values["SecretKey"] = password
-      session.Values["Endpoint"] = endpoint
-      err = sessions.Save(r, w)
-      if err != nil {
-        rendering.HTML(w, http.StatusInternalServerError, "error", http.StatusInternalServerError)
-      }
-      http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-    }
-  } else {
-    rendering.HTML(w, http.StatusOK, "login", nil)
-  }
-}
-
-// Logout
-func Logout(w http.ResponseWriter, r *http.Request) {
+// Main page
+func Index(w http.ResponseWriter, r *http.Request) {
   session, err := store.Get(r, "session-name")
   if err != nil {
     rendering.HTML(w, http.StatusInternalServerError, "error", http.StatusInternalServerError)
   }
-  delete(session.Values, "AccessKey")
-  delete(session.Values, "SecretKey")
-  delete(session.Values, "Endpoint")
-  err = sessions.Save(r, w)
-  http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-}
-
-// Main page
-func Index(w http.ResponseWriter, r *http.Request) {
-  rendering.HTML(w, http.StatusOK, "index", nil)
+  s3Login := false
+  if _, ok := session.Values["AccessKey"]; ok {
+    s3Login = true
+  }
+  rendering.HTML(w, http.StatusOK, "index",  map[string]interface{}{
+    "s3login": s3Login,
+  })
 }
 
 // Returned an S3 struct to be used to execute S3 requests
@@ -266,119 +158,6 @@ func getS3(r *http.Request) (S3, error) {
     Namespace: "",
   }
   return s3, nil
-}
-
-type ECSBucket struct {
-  Api string `json:"bucket_api"`
-  Endpoint string `json:"bucket_endpoint"`
-  User string `json:"bucket_user"`
-  Password string `json:"bucket_password"`
-  Name string `json:"bucket_name"`
-  ReplicationGroup string `json:"bucket_replication_group"`
-  MetadataSearch string `json:"bucket_metadata_search"`
-  EnableADO bool `json:"bucket_enable_ado"`
-  EnableFS bool `json:"bucket_enable_fs"`
-  EnableCompliance bool `json:"bucket_enable_compliance"`
-  EnableEncryption bool `json:"bucket_enable_encryption"`
-}
-
-// Create a new bucket
-func CreateBucket(w http.ResponseWriter, r *http.Request) *appError {
-  decoder := json.NewDecoder(r.Body)
-  var ecsBucket ECSBucket
-  err := decoder.Decode(&ecsBucket)
-  if err != nil {
-    return &appError{err: err, status: http.StatusBadRequest, json: "Can't decode JSON data"}
-  }
-  headers := make(map[string][]string)
-  if ecsBucket.ReplicationGroup != "" {
-    headers["x-emc-vpool"] = []string{ecsBucket.ReplicationGroup}
-  }
-  if ecsBucket.MetadataSearch != "" {
-    headers["x-emc-metadata-search"] = []string{ecsBucket.MetadataSearch}
-  }
-  if ecsBucket.EnableADO {
-    headers["x-emc-is-stale-allowed"] = []string{"true"}
-  } else {
-    headers["x-emc-is-stale-allowed"] = []string{"false"}
-  }
-  if ecsBucket.EnableFS {
-    headers["x-emc-file-system-access-enabled"] = []string{"true"}
-  } else {
-    headers["x-emc-file-system-access-enabled"] = []string{"false"}
-  }
-  if ecsBucket.EnableCompliance {
-    headers["x-emc-compliance-enabled"] = []string{"true"}
-  } else {
-    headers["x-emc-compliance-enabled"] = []string{"false"}
-  }
-  if ecsBucket.EnableEncryption {
-    headers["x-emc-server-side-encryption-enabled"] = []string{"true"}
-  } else {
-    headers["x-emc-server-side-encryption-enabled"] = []string{"false"}
-  }
-  var bucketCreateResponse Response
-  if ecsBucket.Api == "s3" {
-    s3, err := getS3(r)
-    if err != nil {
-      return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
-    }
-    bucketCreateResponse, err = s3Request(s3, ecsBucket.Name, "PUT", "/", headers, "")
-    if err != nil {
-      return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
-    }
-    if bucketCreateResponse.Code == 200  {
-      rendering.JSON(w, http.StatusOK, ecsBucket.Name)
-    } else {
-      return &appError{err: err, status: http.StatusInternalServerError, xml: bucketCreateResponse.Body}
-    }
-  } else if ecsBucket.Api == "swift" {
-    bucketCreateResponse, err = swiftRequest(ecsBucket.Endpoint, ecsBucket.User, ecsBucket.Password, ecsBucket.Name, "PUT", "/", headers, "")
-    log.Print(bucketCreateResponse)
-    if err != nil {
-      return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
-    }
-    if bucketCreateResponse.Code >= 200 && bucketCreateResponse.Code < 300  {
-      rendering.JSON(w, http.StatusOK, ecsBucket.Name)
-    } else {
-      return &appError{err: err, status: http.StatusInternalServerError, xml: bucketCreateResponse.Body}
-    }
-  } else if ecsBucket.Api == "atmos" {
-    s3, err := getS3(r)
-    if err != nil {
-      return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
-    }
-    bucketCreateResponse, err = atmosRequest(ecsBucket.Endpoint, s3.AccessKey, s3.SecretKey, "", "PUT", "/rest/subtenant", headers, "")
-    if err != nil {
-      log.Print(err)
-      return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
-    }
-    if bucketCreateResponse.Code >= 200 && bucketCreateResponse.Code < 300  {
-      rendering.JSON(w, http.StatusOK, bucketCreateResponse.ResponseHeaders["Subtenantid"][0])
-    } else {
-      return &appError{err: err, status: http.StatusInternalServerError, xml: bucketCreateResponse.Body}
-    }
-  }
-
-  return nil
-}
-
-// Retrieve the list of buckets owned by this object user
-func ListBuckets(w http.ResponseWriter, r *http.Request) *appError {
-  s3, err := getS3(r)
-  if err != nil {
-    return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
-  }
-  response, _ := s3Request(s3, "", "GET", "/", make(map[string][]string), "")
-  listBucketsResp := &ListBucketsResp{}
-  xml.NewDecoder(strings.NewReader(response.Body)).Decode(listBucketsResp)
-  buckets := []string{}
-  for _, bucket := range listBucketsResp.Buckets {
-    buckets = append(buckets, bucket.Name)
-  }
-  rendering.JSON(w, http.StatusOK, buckets)
-
-  return nil
 }
 
 // Retrieve the examples loaded from the config.json file
@@ -403,6 +182,117 @@ func Credentials(w http.ResponseWriter, r *http.Request) *appError {
     SecretKey: session.Values["SecretKey"].(string),
     Endpoint: session.Values["Endpoint"].(string),
   })
+
+  return nil
+}
+
+type EcsInfo struct {
+  DefaultReplicationGroup string `json:"default-replication-group"`
+  UserAllowedReplicationGroups []string `json:"user-allowed-replication-groups"`
+  AtmosSubtenants []string `json:"atmos-subtenants"`
+  SwiftContainers []string `json:"swift-containers"`
+}
+
+// Get the replication groups allowed for the object user
+func GetEcsInfo(w http.ResponseWriter, r *http.Request) *appError {
+  if ecs.Endpoint == "" || ecs.User == "" || ecs.Password == "" {
+    return nil
+  }
+  s3, err := getS3(r)
+  if err != nil {
+    return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+  }
+  // Get the namespace of the object user
+  headersUser := make(map[string][]string)
+  responseUser, err := ecsRequest(ecs.Endpoint, ecs.User, ecs.Password, "GET", "/object/users/" + s3.AccessKey + "/info.json", headersUser, "")
+  if err != nil {
+    return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+  }
+  var  user map[string]interface{}
+  err = json.Unmarshal([]byte(responseUser.Body), &user)
+  if err != nil {
+    return &appError{err: err, status: http.StatusBadRequest, json: "Can't decode JSON data"}
+  }
+  // Get the default replication group and the ones allowed/disabllowed for this namespace
+  headersNamespace := make(map[string][]string)
+  responseNamespace, err := ecsRequest(ecs.Endpoint, ecs.User, ecs.Password, "GET", "/object/namespaces/namespace/" + user["namespace"].(string) + ".json", headersNamespace, "")
+  if err != nil {
+    return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+  }
+  var  namespace map[string]interface{}
+  err = json.Unmarshal([]byte(responseNamespace.Body), &namespace)
+  if err != nil {
+    return &appError{err: err, status: http.StatusBadRequest, json: "Can't decode JSON data"}
+  }
+  defaultReplicationGroupId := namespace["default_data_services_vpool"].(string)
+  var allowedReplicationGroups []string
+  if len(namespace["allowed_vpools_list"].([]interface{})) > 0 {
+    allowedReplicationGroups = namespace["allowed_vpools_list"].([]string)
+  }
+  var disallowedReplicationGroups []string
+  if len(namespace["allowed_vpools_list"].([]interface{})) > 0 {
+    disallowedReplicationGroups = namespace["disallowed_vpools_list"].([]string)
+  }
+  // Get all the buckets
+  headersBuckets := make(map[string][]string)
+  responseBuckets, err := ecsRequest(ecs.Endpoint, ecs.User, ecs.Password, "GET", "/object/bucket.json?namespace=" + user["namespace"].(string), headersBuckets, "")
+  if err != nil {
+    return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+  }
+  var buckets map[string]interface{}
+  err = json.Unmarshal([]byte(responseBuckets.Body), &buckets)
+  if err != nil {
+    return &appError{err: err, status: http.StatusBadRequest, json: "Can't decode JSON data"}
+  }
+  var atmosSubtenants []string
+  var swiftContainers []string
+  for _, bucket := range buckets["object_bucket"].([]interface{}) {
+    name := bucket.(map[string]interface{})["name"].(string)
+    owner := bucket.(map[string]interface{})["owner"].(string)
+    apiType := bucket.(map[string]interface{})["api_type"].(string)
+    if owner == s3.AccessKey {
+      if apiType == "ATMOS" {
+        atmosSubtenants = append(atmosSubtenants, name)
+      }
+      if apiType == "SWIFT" {
+        swiftContainers = append(swiftContainers, name)
+      }
+    }
+  }
+  // Get all the replication groups
+  headersReplicationGroups := make(map[string][]string)
+  responseReplicationGroups, err := ecsRequest(ecs.Endpoint, ecs.User, ecs.Password, "GET", "/vdc/data-service/vpools.json", headersReplicationGroups, "")
+  if err != nil {
+    return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+  }
+  var  replicationGroups map[string]interface{}
+  err = json.Unmarshal([]byte(responseReplicationGroups.Body), &replicationGroups)
+  if err != nil {
+    return &appError{err: err, status: http.StatusBadRequest, json: "Can't decode JSON data"}
+  }
+  defaultReplicationGroupName := ""
+  var userAllowedReplicationGroups []string
+  for _, replicationGroup := range replicationGroups["data_service_vpool"].([]interface{}) {
+    name := replicationGroup.(map[string]interface{})["name"].(string)
+    id := replicationGroup.(map[string]interface{})["id"].(string)
+    if id == defaultReplicationGroupId {
+      defaultReplicationGroupName = name
+    }
+    if len(allowedReplicationGroups) == 0 && len(disallowedReplicationGroups) == 0 {
+      userAllowedReplicationGroups = append(userAllowedReplicationGroups, name)
+    } else if contains(allowedReplicationGroups, id) && !contains(disallowedReplicationGroups, id) {
+      userAllowedReplicationGroups = append(userAllowedReplicationGroups, name)
+    }
+  }
+
+  ecsInfo := EcsInfo {
+    DefaultReplicationGroup: defaultReplicationGroupName,
+    UserAllowedReplicationGroups: userAllowedReplicationGroups,
+    AtmosSubtenants: atmosSubtenants,
+    SwiftContainers: swiftContainers,
+  }
+
+  rendering.JSON(w, http.StatusOK, ecsInfo)
 
   return nil
 }
@@ -496,7 +386,6 @@ func SearchMetadata(w http.ResponseWriter, r *http.Request) *appError {
 type ApisQuery struct {
   Api string `json:"apis_api"`
   Endpoint string `json:"apis_endpoint"`
-  User string `json:"apis_user"`
   Password string `json:"apis_password"`
   Bucket string `json:"apis_bucket"`
   Container string `json:"apis_container"`
@@ -540,12 +429,16 @@ func Apis(w http.ResponseWriter, r *http.Request) *appError {
     }
     response, err = s3Request(s3, apisQuery.Bucket, apisQuery.Method, apisQuery.Path, headers, apisQuery.Data)
     if err != nil {
-      return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+      return &appError{err: err, status: http.StatusInternalServerError, json: err.Error()}
     }
   } else if apisQuery.Api == "swift" {
-    response, err = swiftRequest(apisQuery.Endpoint, apisQuery.User, apisQuery.Password, apisQuery.Container, apisQuery.Method, apisQuery.Path, headers, apisQuery.Data)
+    s3, err := getS3(r)
     if err != nil {
       return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+    }
+    response, err = swiftRequest(apisQuery.Endpoint, s3.AccessKey, apisQuery.Password, apisQuery.Container, apisQuery.Method, apisQuery.Path, headers, apisQuery.Data)
+    if err != nil {
+      return &appError{err: err, status: http.StatusInternalServerError, json: err.Error()}
     }
   } else if apisQuery.Api == "atmos" {
     s3, err := getS3(r)
@@ -554,12 +447,16 @@ func Apis(w http.ResponseWriter, r *http.Request) *appError {
     }
     response, err = atmosRequest(apisQuery.Endpoint, s3.AccessKey, s3.SecretKey, apisQuery.Subtenant, apisQuery.Method, apisQuery.Path, headers, apisQuery.Data)
     if err != nil {
-      return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+      return &appError{err: err, status: http.StatusInternalServerError, json: err.Error()}
     }
   } else if apisQuery.Api == "ecs" {
-    response, err = ecsRequest(apisQuery.Endpoint, apisQuery.User, apisQuery.Password, apisQuery.Method, apisQuery.Path, headers, apisQuery.Data)
+    session, err := store.Get(r, "session-name")
     if err != nil {
       return &appError{err: err, status: http.StatusInternalServerError, json: http.StatusText(http.StatusInternalServerError)}
+    }
+    response, err = ecsRequest(session.Values["Endpoint"].(string), session.Values["User"].(string), session.Values["Password"].(string), apisQuery.Method, apisQuery.Path, headers, apisQuery.Data)
+    if err != nil {
+      return &appError{err: err, status: http.StatusInternalServerError, json: err.Error()}
     }
   }
   var httpResponse HttpResponse

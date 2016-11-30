@@ -16,6 +16,7 @@
   <script type="text/javascript" src="/app/javascript/app.js"></script>
 </head>
 <body ng-controller="MainController as main">
+  <input type="hidden" id="s3login" value="{{ .s3login }}" />
   <main-message></main-message>
 
   <div id="content" class="main container-fluid fullsize">
@@ -54,6 +55,9 @@
         <div class="row fullsize">
           <div class="col-md-12">
             <main-metadata-result></main-metadata-result>
+          </div>
+          <div class="col-md-12">
+            <main-ecs-billing-result></main-ecs-billing-result>
           </div>
           <div class="col-md-12">
             <main-apis-request></main-apis-request>

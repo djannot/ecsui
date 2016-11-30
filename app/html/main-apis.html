@@ -2,23 +2,23 @@
   <div class="panel-heading">Request</div>
   <div class="panel-body">
     <form accept-charset="UTF-8" ng-submit="apisCtrl.execute(menu.split('-')[1])">
-      <div class="field" ng-if="(menu=='requests-swift' || menu=='requests-atmos' || menu=='requests-ecs')">
+      <div class="field" ng-if="menu=='requests-swift'">
         <div class="input-group">
-          <span class="input-group-addon">Endpoint</span>
-          <input ng-model="apisCtrl.apis_endpoint" ng-required="true" class="form-control" id="apis_endpoint" name="apis_endpoint" type="text" />
+          <span class="input-group-addon">Swift Endpoint</span>
+          <input ng-model="main.swiftendpoint" ng-required="true" class="form-control" id="apis_endpoint" name="apis_endpoint" type="text" />
         </div>
         <br />
       </div>
-      <div class="field" ng-if="(menu=='requests-swift' || menu=='requests-ecs')">
+      <div class="field" ng-if="menu=='requests-atmos'">
         <div class="input-group">
-          <span class="input-group-addon">User</span>
-          <input ng-model="apisCtrl.apis_user" ng-required="true" class="form-control" id="apis_user" name="apis_user" type="text" />
+          <span class="input-group-addon">Atmos Endpoint</span>
+          <input ng-model="main.atmosendpoint" ng-required="true" class="form-control" id="apis_endpoint" name="apis_endpoint" type="text" />
         </div>
         <br />
       </div>
-      <div class="field" ng-if="(menu=='requests-swift' || menu=='requests-ecs')">
+      <div class="field" ng-if="(menu=='requests-swift')">
         <div class="input-group">
-          <span class="input-group-addon">Password</span>
+          <span class="input-group-addon">Swift Password</span>
           <input ng-model="apisCtrl.apis_password" ng-required="true" class="form-control" id="apis_password" name="apis_password" type="password" />
         </div>
         <br />
@@ -33,17 +33,37 @@
         </div>
         <br />
       </div>
-      <div class="field" ng-if="menu=='requests-swift'">
+      <div ng-if="(menu=='requests-swift' && main.swiftcontainers.length == 0)" class="field">
         <div class="input-group">
           <span class="input-group-addon">Container</span>
           <input ng-model="apisCtrl.apis_container" class="form-control" id="apis_container" name="apis_container" type="text" />
         </div>
         <br />
       </div>
-      <div class="field" ng-if="menu=='requests-atmos'">
+      <div ng-if="(menu=='requests-swift' && main.swiftcontainers.length > 0)" class="field">
+        <div class="input-group">
+          <span class="input-group-addon">Container</span>
+          <select ng-model="apisCtrl.apis_container" class="form-control" id="apis_container" name="apis_container">
+            <option value=""></option>
+            <option ng-repeat="swiftcontainer in main.swiftcontainers | orderBy: 'swiftcontainer'" value="{{ swiftcontainer }}">{{ swiftcontainer }}</option>
+          </select>
+        </div>
+        <br />
+      </div>
+      <div ng-if="(menu=='requests-atmos' && main.atmossubtenants.length == 0)" class="field">
         <div class="input-group">
           <span class="input-group-addon">Subtenant</span>
           <input ng-model="apisCtrl.apis_subtenant" class="form-control" id="apis_subtenant" name="apis_subtenant" type="text" />
+        </div>
+        <br />
+      </div>
+      <div ng-if="(menu=='requests-atmos' && main.atmossubtenants.length > 0)" class="field">
+        <div class="input-group">
+          <span class="input-group-addon">Subtenant</span>
+          <select ng-model="apisCtrl.apis_subtenant" class="form-control" id="apis_subtenant" name="apis_subtenant">
+            <option value=""></option>
+            <option ng-repeat="atmossubtenant in main.atmossubtenants | orderBy: 'atmossubtenant'" value="{{ atmossubtenant }}">{{ atmossubtenant }}</option>
+          </select>
         </div>
         <br />
       </div>

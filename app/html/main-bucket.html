@@ -2,23 +2,23 @@
   <div class="panel-heading">Create bucket/container/subtenant</div>
   <div class="panel-body">
     <form accept-charset="UTF-8" ng-submit="bucketCtrl.create(menu.split('-')[1])">
-      <div class="field" ng-if="(menu=='create-swift' || menu=='create-atmos')">
+      <div class="field" ng-if="menu=='create-swift'">
         <div class="input-group">
-          <span class="input-group-addon">Endpoint</span>
-          <input ng-model="bucketCtrl.bucket_endpoint" ng-required="true" class="form-control" id="bucket_endpoint" name="bucket_endpoint" type="text" />
+          <span class="input-group-addon">Swift Endpoint</span>
+          <input ng-model="main.swiftendpoint" ng-required="true" class="form-control" id="bucket_endpoint" name="bucket_endpoint" type="text" />
+        </div>
+        <br />
+      </div>
+      <div class="field" ng-if="menu=='create-atmos'">
+        <div class="input-group">
+          <span class="input-group-addon">Atmos Endpoint</span>
+          <input ng-model="main.atmosendpoint" ng-required="true" class="form-control" id="bucket_endpoint" name="bucket_endpoint" type="text" />
         </div>
         <br />
       </div>
       <div class="field" ng-if="menu=='create-swift'">
         <div class="input-group">
-          <span class="input-group-addon">User</span>
-          <input ng-model="bucketCtrl.bucket_user" ng-required="true" class="form-control" id="bucket_user" name="bucket_user" type="text" />
-        </div>
-        <br />
-      </div>
-      <div class="field" ng-if="menu=='create-swift'">
-        <div class="input-group">
-          <span class="input-group-addon">Password</span>
+          <span class="input-group-addon">Swift Password</span>
           <input ng-model="bucketCtrl.bucket_password" ng-required="true" class="form-control" id="bucket_password" name="bucket_password" type="password" />
         </div>
         <br />
@@ -30,10 +30,19 @@
         </div>
         <br />
       </div>
-      <div class="field">
+      <div ng-if="main.replicationgroups.length == 0" class="field">
         <div class="input-group">
           <span class="input-group-addon">Replication Group</span>
           <input ng-model="bucketCtrl.bucket_replication_group" class="form-control" id="bucket_replication_group" name="bucket_replication_group" type="text" />
+        </div>
+        <br />
+      </div>
+      <div ng-if="main.replicationgroups.length > 0" class="field">
+        <div class="input-group">
+          <span class="input-group-addon">Replication Group</span>
+          <select ng-model="bucketCtrl.bucket_replication_group" class="form-control" id="bucket_replication_group" name="bucket_replication_group">
+            <option ng-repeat="replicationgroup in main.replicationgroups | orderBy: 'replicationgroup'" value="{{ replicationgroup }}">{{ replicationgroup }}</option>
+          </select>
         </div>
         <br />
       </div>
