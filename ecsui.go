@@ -120,7 +120,7 @@ func main() {
   router.Handle("/api/v1/billing/namespaces", appHandler(BillingGetNamespaces)).Methods("GET")
   router.Handle("/api/v1/billing/users/{namespace}", appHandler(BillingGetUsers)).Methods("GET")
   router.Handle("/api/v1/billing/buckets/{namespace}", appHandler(BillingGetBuckets)).Methods("GET")
-  router.Handle("/api/v1/billing/current_usage/{namespace}", appHandler(BillingGetCurrentUsage)).Methods("POST")
+  router.Handle("/api/v1/billing/info/{namespace}", appHandler(BillingGetCurrentUsage)).Methods("POST")
   router.HandleFunc("/login", Login)
   router.HandleFunc("/logout", Logout)
   router.PathPrefix("/app/").Handler(http.StripPrefix("/app/", http.FileServer(http.Dir("app"))))

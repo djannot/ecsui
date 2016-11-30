@@ -315,7 +315,7 @@ function formatXml(xml) {
         this.getUsers = function() {
           $scope.main.billing["users"] = {};
           $scope.main.billing["buckets"] = {};
-          $scope.main.billing["current_usage"] = {};
+          $scope.main.billing["info"] = {};
           $http.get('/api/v1/billing/users/' + this.namespace).
             success(function(data, status, headers, config) {
               $scope.main.billing["users"] = data;
@@ -328,7 +328,7 @@ function formatXml(xml) {
         };
         this.getBuckets = function() {
           $scope.main.billing["buckets"] = {};
-          $scope.main.billing["current_usage"] = {};
+          $scope.main.billing["info"] = {};
           $http.get('/api/v1/billing/buckets/' + this.namespace).
             success(function(data, status, headers, config) {
               $scope.main.billing["buckets"] = data;
@@ -339,8 +339,8 @@ function formatXml(xml) {
               $('#message').modal({show: true});
           });
         };
-        this.getCurrentUsage = function(scope) {
-          $scope.main.billing["current_usage"] = {};
+        this.getInfo = function(scope) {
+          $scope.main.billing["info"] = {};
           buckets = [];
           if(scope == "bucket") {
             buckets.push(this.bucket);
@@ -354,9 +354,9 @@ function formatXml(xml) {
               }
             });
           }
-          $http.post('/api/v1/billing/current_usage/' + this.namespace, {buckets: buckets, from: this.from, to: this.to, bucket_details: this.bucket_details}).
+          $http.post('/api/v1/billing/info/' + this.namespace, {buckets: buckets, from: this.from, to: this.to, bucket_details: this.bucket_details}).
             success(function(data, status, headers, config) {
-              $scope.main.billing["current_usage"] = data;
+              $scope.main.billing["info"] = data;
             }).
             error(function(data, status, headers, config) {
               $scope.main.messagetitle = "Error";

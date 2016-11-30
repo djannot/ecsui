@@ -47,7 +47,7 @@
       </button>
     </div>
     <div ng-if="main.billing['namespaces']['namespace'].length > 0" class="field">
-      <button class="btn btn-primary has-spinner" ng-disabled="loadingService.isLoading()" ng-class="{'active': loadingService.isLoading()}" ng-click="ecsBillingCtrl.getCurrentUsage()">
+      <button class="btn btn-primary has-spinner" ng-disabled="loadingService.isLoading()" ng-class="{'active': loadingService.isLoading()}" ng-click="ecsBillingCtrl.getInfo()">
         <span class="spinner"><i class="fa fa-refresh fa-spin"></i></span>
         Get Usage
       </button>
@@ -69,7 +69,7 @@
       </button>
     </div>
     <div ng-if="main.billing['buckets']['object_bucket'].length > 0" class="field">
-      <button class="btn btn-primary has-spinner" ng-disabled="loadingService.isLoading()" ng-class="{'active': loadingService.isLoading()}" ng-click="ecsBillingCtrl.getCurrentUsage('buckets')">
+      <button class="btn btn-primary has-spinner" ng-disabled="loadingService.isLoading()" ng-class="{'active': loadingService.isLoading()}" ng-click="ecsBillingCtrl.getInfo('buckets')">
         <span class="spinner"><i class="fa fa-refresh fa-spin"></i></span>
         Get Usage
       </button>
@@ -85,7 +85,7 @@
       <br />
     </div>
     <div ng-if="main.billing['buckets']['object_bucket'].length > 0" class="field">
-      <button class="btn btn-primary has-spinner" ng-disabled="loadingService.isLoading()" ng-class="{'active': loadingService.isLoading()}" ng-click="ecsBillingCtrl.getCurrentUsage('bucket')">
+      <button class="btn btn-primary has-spinner" ng-disabled="loadingService.isLoading()" ng-class="{'active': loadingService.isLoading()}" ng-click="ecsBillingCtrl.getInfo('bucket')">
         <span class="spinner"><i class="fa fa-refresh fa-spin"></i></span>
         Get Usage
       </button>

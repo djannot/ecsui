@@ -50,13 +50,15 @@
         </div>
         <br />
       </div>
-      <div ng-if="(menu=='requests-atmos' && main.atmossubtenants.length == 0)" class="field">
+      <!--<div ng-if="(menu=='requests-atmos' && main.atmossubtenants.length == 0)" class="field">-->
+      <div ng-if="menu=='requests-atmos'" class="field">
         <div class="input-group">
           <span class="input-group-addon">Subtenant</span>
           <input ng-model="apisCtrl.apis_subtenant" class="form-control" id="apis_subtenant" name="apis_subtenant" type="text" />
         </div>
         <br />
       </div>
+      <!--
       <div ng-if="(menu=='requests-atmos' && main.atmossubtenants.length > 0)" class="field">
         <div class="input-group">
           <span class="input-group-addon">Subtenant</span>
@@ -67,6 +69,7 @@
         </div>
         <br />
       </div>
+      -->
       <div class="field">
         <div class="input-group">
           <span class="input-group-addon">Path</span>

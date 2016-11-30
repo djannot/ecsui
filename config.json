@@ -1109,7 +1109,7 @@
           }
         },
         {
-          "description":"Delete the bucket",
+          "description":"Delete the container",
           "expected_response_code":"204",
           "path":"/testcontainer1",
           "range":"",
@@ -1185,7 +1185,7 @@
           }
         },
         {
-          "description":"Delete the bucket",
+          "description":"Delete the container",
           "expected_response_code":"204",
           "path":"/testcontainer1",
           "range":"",
@@ -1251,7 +1251,7 @@
           }
         },
         {
-          "description":"Delete the bucket",
+          "description":"Delete the container",
           "expected_response_code":"204",
           "path":"/testcontainer1",
           "range":"",
@@ -1328,7 +1328,7 @@
           }
         },
         {
-          "description":"Delete the bucket",
+          "description":"Delete the container",
           "expected_response_code":"204",
           "path":"/testcontainer1",
           "range":"",
@@ -1405,7 +1405,7 @@
           }
         },
         {
-          "description":"Delete the bucket",
+          "description":"Delete the container",
           "expected_response_code":"204",
           "path":"/testcontainer1",
           "range":"",
