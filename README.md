@@ -1,4 +1,4 @@
-ECSUI
+ECS API User Interface
 ==============
 
 [![wercker status](https://app.wercker.com/status/5ea6589e95e1aa62a999e918754fb7d8/m "wercker status")](https://app.wercker.com/project/bykey/5ea6589e95e1aa62a999e918754fb7d8)
@@ -6,15 +6,14 @@ ECSUI
 OVERVIEW
 --------------
 
-ECSUI is a web application developped in Golang and leveraging AngularJS
+ECS API User Interface is a web application developped in Golang and leveraging AngularJS
 
 The goals of ECSUI are to:
 
-- demonstrate some nice S3 features (versioning, lifecycle policy, …) and several unique ECS capabilities using either S3 or Swift (byte range, retentions, metadata search, …)
-- simplify the usage of several REST APIs (S3, Swift, Atmos, ECS)
+- demonstrate some nice S3 features (versioning, lifecycle policy, …) and several unique ECS capabilities using either the S3, Swift or Atmos API (byte range, retentions, metadata search, …)
+- simplify the usage of the S3, Swift, Atmos and ECS Management API
 - provide a simple UI for the ECS metadata search features
-
-More capabilities will be added in the future
+- provide a simple UI to get metering information from ECS
 
 BUILD
 --------------
@@ -26,10 +25,14 @@ Just run the following command in the folder that contains the Dockerfile: docke
 RUN
 --------------
 
-To start the application, run:
-docker run -d -p 80:80 ecsui
+You can optionaly set environment variables (*USER*, *PASSWORD* and *ENDPOINT*) to let the application using the ECS management API to provide some additional features (like displaying the *Replication Groups* available when creating a bucket).
 
-The application will be available on http://\<ip of application host\>
+To start the application, run:
+```
+docker run -d -p 80:80 djannot/ecsui
+```
+
+The application is now available on port 80.
 
 LICENSING
 --------------
