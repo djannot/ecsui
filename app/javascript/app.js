@@ -89,7 +89,7 @@ function formatXml(xml) {
     $httpProvider.interceptors.push('loadingInterceptor');
   }]);
 
-  app.controller('MainController', ['$http', '$animate', '$scope', 'loadingService', 'mainService', function($http, $animate, $scope, loadingService, mainService) {
+  app.controller('MainController', ['$http', '$animate', '$scope', '$timeout', 'loadingService', 'mainService', function($http, $animate, $scope, $timeout, loadingService, mainService) {
     $scope.main = mainService;
     loadingCount = 0;
     $scope.main.s3login = $('#s3login').val();
@@ -147,8 +147,11 @@ function formatXml(xml) {
         $('#message').modal('show');
       });
       $http.get('/api/v1/ecs/info').success(function(data) {
-        $scope.main.defaultreplicationgroup = data["default-replication-group"];
         $scope.main.replicationgroups = data["user-allowed-replication-groups"];
+        $scope.main.defaultreplicationgroup = data["default-replication-group"];
+        $timeout(function(){
+          $scope.bucketCtrl.bucket_replication_group = $scope.main.defaultreplicationgroup ;
+        });
         if(data["atmos-subtenants"]) {
           $scope.main.atmossubtenants = data["atmos-subtenants"];
         }

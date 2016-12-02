@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>ECS User Interface</title>
+  <title>ECS API User Interface</title>
   <link rel="stylesheet" type="text/css" href="/app/css/bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="/app/css/bootstrap-theme.min.css">
   <link rel="stylesheet" type="text/css" href="/app/css/app.css" />
@@ -9,7 +9,7 @@
 <body>
   <div id="content" class="main container-fluid fullsize">
     <div class="row">
-        <h1 class="logo col-md-12">ECS User Interface</h1>
+        <h1 class="logo col-md-12">ECS API User Interface</h1>
     </div>
     <div class="row">
       <div class="col-md-6 col-md-offset-3">
@@ -17,16 +17,16 @@
           <div id="alert-danger" class="alert alert-danger">{{.}}</div>
         {{ end }}
         <div class="panel panel-primary">
-          <div class="panel-heading">Login with your Active Directory or your object user account</div>
+          <div class="panel-heading">Login</div>
           <div class="panel-body">
             <form accept-charset="UTF-8" action="/login" id="viewForm" method="post">
               <div class="field">
                 <div class="input-group">
                   <span class="input-group-addon">Authentication method</span>
                   <select class="form-control" id="authentication" name="authentication">
-                    <option value="objectuser">Object User</option>
-                    <option value="ad">Active Directory</option>
-                    <option value="adminuser">Admin User</option>
+                    <option value="objectuser">ECS Object User</option>
+                    <option value="ad">Active Directory Object User</option>
+                    <option value="adminuser">ECS Management User</option>
                   </select>
                 </div>
               </div>
