@@ -332,7 +332,6 @@ func sign(s3 S3, method, canonicalPath string, params, headers map[string][]stri
     canonicalPath = canonicalPath + "?" + strings.Join(sarray, "&")
   }
   payload := method + "\n" + md5 + "\n" + ctype + "\n" + date + "\n" + xamz + canonicalPath
-  log.Println(payload)
   hash := hmac.New(sha1.New, []byte(s3.SecretKey))
   hash.Write([]byte(payload))
   signature := make([]byte, b64.EncodedLen(hash.Size()))

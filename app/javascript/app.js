@@ -147,16 +147,18 @@ function formatXml(xml) {
         $('#message').modal('show');
       });
       $http.get('/api/v1/ecs/info').success(function(data) {
-        $scope.main.replicationgroups = data["user-allowed-replication-groups"];
-        $scope.main.defaultreplicationgroup = data["default-replication-group"];
-        $timeout(function(){
-          $scope.bucketCtrl.bucket_replication_group = $scope.main.defaultreplicationgroup ;
-        });
-        if(data["atmos-subtenants"]) {
-          $scope.main.atmossubtenants = data["atmos-subtenants"];
-        }
-        if(data["swift-containers"]) {
-          $scope.main.swiftcontainers = data["swift-containers"];
+        if(data) {
+          $scope.main.replicationgroups = data["user-allowed-replication-groups"];
+          $scope.main.defaultreplicationgroup = data["default-replication-group"];
+          $timeout(function(){
+            $scope.bucketCtrl.bucket_replication_group = $scope.main.defaultreplicationgroup ;
+          });
+          if(data["atmos-subtenants"]) {
+            $scope.main.atmossubtenants = data["atmos-subtenants"];
+          }
+          if(data["swift-containers"]) {
+            $scope.main.swiftcontainers = data["swift-containers"];
+          }
         }
       }).
       error(function(data, status, headers, config) {
