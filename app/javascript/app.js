@@ -199,46 +199,62 @@ function formatXml(xml) {
       restrict: 'E',
       templateUrl: "app/html/main-bucket.html",
       controller: ['$http', '$scope', 'mainService', function($http, $scope, mainService) {
+        this.bucket_retention = 0;
+        this.bucket_expiration_current_versions = 0;
+        this.bucket_expiration_non_current_versions = 0;
         this.create = function(api) {
-          $http.post('/api/v1/bucket', {
-            bucket_api: api,
-            bucket_endpoint: $("#bucket_endpoint").val(),
-            bucket_password: this.bucket_password,
-            bucket_name: this.bucket_name,
-            bucket_replication_group: this.bucket_replication_group,
-            bucket_metadata_search: this.bucket_metadata_search,
-            bucket_enable_ado: this.bucket_enable_ado,
-            bucket_enable_fs: this.bucket_enable_fs,
-            bucket_enable_compliance: this.bucket_enable_compliance,
-            bucket_enable_encryption: this.bucket_enable_encryption
-          }).
-            success(function(data, status, headers, config) {
-              $scope.main.messagetitle = "Success";
-              $scope.main.messagebody = "Bucket/container/subtenant " + data + " created";
-              $('#message').modal({show: true});
-              if(api == "s3") {
-                $http.get('/api/v1/buckets').success(function(data) {
-                  $scope.main.buckets = data;
-                }).
-                error(function(data, status, headers, config) {
-                  $scope.main.messagetitle = "Error";
-                  $scope.main.messagebody = data;
-                  $('#message').modal('show');
-                });
-              }
-              if(api == "atmos") {
-                $scope.main.atmossubtenants.push(data);
-              }
-              if(api == "swift") {
-                $scope.main.swiftcontainers.push(data);
-              }
+          if(this.bucket_expiration_current_versions < this.bucket_retention && this.bucket_expiration_current_versions != 0) {
+            $scope.main.messagetitle = "Error";
+            $scope.main.messagebody = "Expiration of current versions must be higher than or equal to retention";
+            $('#message').modal('show');
+          } else {
+            bucket_name = this.bucket_name;
+            $http.post('/api/v1/bucket', {
+              bucket_api: api,
+              bucket_endpoint: $("#bucket_endpoint").val(),
+              bucket_password: this.bucket_password,
+              bucket_name: this.bucket_name,
+              bucket_replication_group: this.bucket_replication_group,
+              bucket_metadata_search: this.bucket_metadata_search,
+              bucket_enable_ado: this.bucket_enable_ado,
+              bucket_enable_fs: this.bucket_enable_fs,
+              bucket_enable_compliance: this.bucket_enable_compliance,
+              bucket_enable_encryption: this.bucket_enable_encryption,
+              bucket_retention: this.bucket_retention.toString(),
+              bucket_enable_versioning: this.bucket_enable_versioning,
+              bucket_expiration_current_versions: this.bucket_expiration_current_versions.toString(),
+              bucket_expiration_non_current_versions: this.bucket_expiration_non_current_versions.toString()
             }).
-            error(function(data, status, headers, config) {
-              $scope.main.result = [];
-              $scope.main.messagetitle = "Error";
-              $scope.main.messagebody = data;
-              $('#message').modal({show: true});
-            });
+              success(function(data, status, headers, config) {
+                $scope.main.messagetitle = "Success";
+                if(api == "s3") {
+                  $scope.main.messagebody = "Bucket " + bucket_name + " created";
+                  $http.get('/api/v1/buckets').success(function(data) {
+                    $scope.main.buckets = data;
+                  }).
+                  error(function(data, status, headers, config) {
+                    $scope.main.messagetitle = "Error";
+                    $scope.main.messagebody = data;
+                    $('#message').modal('show');
+                  });
+                }
+                if(api == "atmos") {
+                  $scope.main.messagebody = "Subtenant " + bucket_name + " created";
+                  $scope.main.atmossubtenants.push(bucket_name);
+                }
+                if(api == "swift") {
+                  $scope.main.messagebody = "Container " + bucket_name + " created";
+                  $scope.main.swiftcontainers.push(bucket_name);
+                }
+                $('#message').modal({show: true});
+              }).
+              error(function(data, status, headers, config) {
+                $scope.main.result = [];
+                $scope.main.messagetitle = "Error";
+                $scope.main.messagebody = data;
+                $('#message').modal({show: true});
+              });
+          }
         };
       }],
       controllerAs: "bucketCtrl"
@@ -387,6 +403,7 @@ function formatXml(xml) {
       templateUrl: "app/html/main-apis.html",
       controller: ['$http', '$scope', 'mainService', function($http, $scope, mainService) {
         this.apis_method = "GET";
+        this.apis_path = "/";
         this.execute = function(api) {
           $scope.main.apis.response = {};
           var customHeaders = {};

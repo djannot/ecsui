@@ -6,6 +6,7 @@ import (
   "log"
   "net/http"
   "strings"
+  "strconv"
 )
 
 type ECSBucket struct {
@@ -19,6 +20,10 @@ type ECSBucket struct {
   EnableFS bool `json:"bucket_enable_fs"`
   EnableCompliance bool `json:"bucket_enable_compliance"`
   EnableEncryption bool `json:"bucket_enable_encryption"`
+  Retention string `json:"bucket_retention"`
+  EnableVersioning bool `json:"bucket_enable_versioning"`
+  ExpirationCurrentVersions string `json:"bucket_expiration_current_versions"`
+  ExpirationNonCurrentVersions string `json:"bucket_expiration_non_current_versions"`
 }
 
 // Create a new bucket
@@ -56,6 +61,34 @@ func CreateBucket(w http.ResponseWriter, r *http.Request) *appError {
   } else {
     headers["x-emc-server-side-encryption-enabled"] = []string{"false"}
   }
+  retentionEnabled := false
+  headers["x-emc-retention-period"] = []string{"0"}
+  if ecsBucket.Retention != "" {
+    days, err := strconv.ParseInt(ecsBucket.Retention, 10, 64)
+    if err == nil {
+      if days > 0 {
+        seconds := days * 24 * 3600
+        headers["x-emc-retention-period"] = []string{int64toString(seconds)}
+        retentionEnabled = true
+      }
+    }
+  }
+  var expirationCurrentVersions int64
+  expirationCurrentVersions = 0
+  if ecsBucket.ExpirationCurrentVersions != "" {
+    days, err := strconv.ParseInt(ecsBucket.ExpirationCurrentVersions, 10, 64)
+    if err == nil {
+      expirationCurrentVersions = days
+    }
+  }
+  var expirationNonCurrentVersions int64
+  expirationNonCurrentVersions = 0
+  if ecsBucket.ExpirationNonCurrentVersions != "" {
+    days, err := strconv.ParseInt(ecsBucket.ExpirationNonCurrentVersions, 10, 64)
+    if err == nil && ecsBucket.EnableVersioning {
+      expirationNonCurrentVersions = days
+    }
+  }
   var bucketCreateResponse Response
   if ecsBucket.Api == "s3" {
     s3, err := getS3(r)
@@ -66,8 +99,72 @@ func CreateBucket(w http.ResponseWriter, r *http.Request) *appError {
     if err != nil {
       return &appError{err: err, status: http.StatusInternalServerError, json: err.Error()}
     }
-    if bucketCreateResponse.Code == 200  {
-      rendering.JSON(w, http.StatusOK, ecsBucket.Name)
+    versioningStatusOK := true
+    lifecyclePolicyStatusOK := true
+    // If the bucket has been created
+    if bucketCreateResponse.Code == 200 {
+      if !retentionEnabled && ecsBucket.EnableVersioning  {
+        // Enable versioning
+        enableVersioningHeaders := map[string][]string{}
+        enableVersioningHeaders["Content-Type"] = []string{"application/xml"}
+        versioningConfiguration := `
+        <VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+          <Status>Enabled</Status>
+          <MfaDelete>Disabled</MfaDelete>
+        </VersioningConfiguration>
+        `
+        enableVersioningResponse, _ := s3Request(s3, ecsBucket.Name, "PUT", "/?versioning", enableVersioningHeaders, versioningConfiguration)
+        if enableVersioningResponse.Code != 200 {
+          versioningStatusOK = false
+        }
+      }
+      if expirationCurrentVersions > 0 || expirationNonCurrentVersions > 0 {
+        lifecyclePolicyHeaders := map[string][]string{}
+        lifecyclePolicyHeaders["Content-Type"] = []string{"application/xml"}
+        lifecyclePolicyConfiguration := `
+        <LifecycleConfiguration>
+          <Rule>
+            <ID>expiration</ID>
+            <Prefix></Prefix>
+            <Status>Enabled</Status>
+        `
+        if expirationCurrentVersions > 0 && expirationNonCurrentVersions > 0 {
+          // Enable expiration for both current and non current versions
+          lifecyclePolicyConfiguration += "<Expiration><Days>" + ecsBucket.ExpirationCurrentVersions +  "</Days></Expiration>"
+          lifecyclePolicyConfiguration += "<NoncurrentVersionExpiration><NoncurrentDays>" + ecsBucket.ExpirationNonCurrentVersions +  "</NoncurrentDays></NoncurrentVersionExpiration>"
+        } else {
+          if expirationCurrentVersions > 0 {
+            // Enable expiration for current versions only
+            lifecyclePolicyConfiguration += "<Expiration><Days>" + ecsBucket.ExpirationCurrentVersions +  "</Days></Expiration>"
+          }
+          if expirationNonCurrentVersions > 0 {
+            // Enable expiration for non current versions only
+            // To fix a bug in ECS 3.0 where an expiration for non current version can't be set if there's no expiration set for current versions
+            lifecyclePolicyConfiguration += "<Expiration><Days>1000000</Days></Expiration>"
+            lifecyclePolicyConfiguration += "<NoncurrentVersionExpiration><NoncurrentDays>" + ecsBucket.ExpirationNonCurrentVersions +  "</NoncurrentDays></NoncurrentVersionExpiration>"
+          }
+        }
+        lifecyclePolicyConfiguration += `
+          </Rule>
+        </LifecycleConfiguration>
+        `
+        lifecyclePolicyResponse, _ := s3Request(s3, ecsBucket.Name, "PUT", "/?lifecycle", lifecyclePolicyHeaders, lifecyclePolicyConfiguration)
+        if lifecyclePolicyResponse.Code != 200 {
+          lifecyclePolicyStatusOK = false
+        }
+      }
+      if versioningStatusOK && lifecyclePolicyStatusOK {
+        rendering.JSON(w, http.StatusOK, "")
+      } else {
+        message := ""
+        if !versioningStatusOK {
+          message += " Versioning can't be enabled."
+        }
+        if !lifecyclePolicyStatusOK {
+          message += " Expiration can't be set."
+        }
+        rendering.JSON(w, http.StatusOK, message)
+      }
     } else {
       return &appError{err: err, status: http.StatusInternalServerError, xml: bucketCreateResponse.Body}
     }

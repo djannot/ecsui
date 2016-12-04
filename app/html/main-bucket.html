@@ -89,6 +89,36 @@
         </div>
         <br />
       </div>
+      <div class="field">
+        <div class="input-group">
+          <span class="input-group-addon">Retention (days)</span>
+          <input ng-model="bucketCtrl.bucket_retention" class="form-control" placeholder="0 means no retention" id="bucket_retention" name="bucket_retention" type="text" />
+        </div>
+        <br />
+      </div>
+      <div class="field" ng-if="(menu=='create-s3' && (!bucketCtrl.bucket_retention || bucketCtrl.bucket_retention == 0))">
+        <div class="input-group">
+          <input type="text" class="form-control" value="Enable versioning" readonly="readonly">
+          <span class="input-group-addon">
+            <input ng-model="bucketCtrl.bucket_enable_versioning" id="bucket_enable_versioning" name="bucket_enable_versioning" type="checkbox" />
+          </span>
+        </div>
+        <br />
+      </div>
+      <div class="field" ng-if="menu=='create-s3'">
+        <div class="input-group">
+          <span class="input-group-addon">Expiration of current versions (days)</span>
+          <input ng-model="bucketCtrl.bucket_expiration_current_versions" class="form-control" placeholder="0 means no expiration and must be higher than or equal to retention" id="bucket_expiration_current_versions" name="bucket_expiration_current_versions" type="text" />
+        </div>
+        <br />
+      </div>
+      <div class="field" ng-if="(menu=='create-s3' && bucketCtrl.bucket_enable_versioning && (!bucketCtrl.bucket_retention || bucketCtrl.bucket_retention == 0))">
+        <div class="input-group">
+          <span class="input-group-addon">Expiration of non current versions (days)</span>
+          <input ng-model="bucketCtrl.bucket_expiration_non_current_versions" class="form-control" placeholder="0 means no expiration" id="bucket_expiration_non_current_versions" name="bucket_expiration_non_current_versions" type="text" />
+        </div>
+        <br />
+      </div>
       <div class="actions">
         <button class="btn btn-primary has-spinner" ng-disabled="loadingService.isLoading()" ng-class="{'active': loadingService.isLoading()}">
           <span class="spinner"><i class="fa fa-refresh fa-spin"></i></span>
