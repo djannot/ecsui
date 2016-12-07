@@ -239,8 +239,8 @@ function formatXml(xml) {
                   });
                 }
                 if(api == "atmos") {
-                  $scope.main.messagebody = "Subtenant " + bucket_name + " created";
-                  $scope.main.atmossubtenants.push(bucket_name);
+                  $scope.main.messagebody = "Subtenant " + data + " created";
+                  $scope.main.atmossubtenants.push(data);
                 }
                 if(api == "swift") {
                   $scope.main.messagebody = "Container " + bucket_name + " created";

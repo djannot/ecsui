@@ -5,7 +5,6 @@ import (
   "crypto/hmac"
   "crypto/sha1"
   "crypto/tls"
-  "log"
   "net/http"
   "sort"
   "strings"
@@ -69,7 +68,6 @@ func atmosRequest(endpoint string, user string, password string, subtenant strin
     return Response{}, err
   }
   req.Header = headersToSend
-  log.Print(req)
   resp, err := httpClient.Do(req)
   if err != nil {
     return Response{}, err

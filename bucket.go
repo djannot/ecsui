@@ -3,7 +3,6 @@ package main
 import (
   "encoding/json"
   "encoding/xml"
-  "log"
   "net/http"
   "strings"
   "strconv"
@@ -189,7 +188,6 @@ func CreateBucket(w http.ResponseWriter, r *http.Request) *appError {
     }
     bucketCreateResponse, err = atmosRequest(ecsBucket.Endpoint, s3.AccessKey, s3.SecretKey, "", "PUT", "/rest/subtenant", headers, "")
     if err != nil {
-      log.Print(err)
       return &appError{err: err, status: http.StatusInternalServerError, json: err.Error()}
     }
     if bucketCreateResponse.Code >= 200 && bucketCreateResponse.Code < 300  {
