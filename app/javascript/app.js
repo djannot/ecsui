@@ -162,9 +162,12 @@ function formatXml(xml) {
         }
       }).
       error(function(data, status, headers, config) {
+        console.log(data);
+        /*
         $scope.main.messagetitle = "Error";
         $scope.main.messagebody = data;
         $('#message').modal('show');
+        */
       });
     }
   }]);
