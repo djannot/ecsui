@@ -177,10 +177,12 @@ func Credentials(w http.ResponseWriter, r *http.Request) *appError {
     AccessKey string `json:"access-key"`
     SecretKey string `json:"secret-key"`
     Endpoint string `json:"endpoint"`
+    Html5browser string `json:"html5browser"`
   } {
     AccessKey: session.Values["AccessKey"].(string),
     SecretKey: session.Values["SecretKey"].(string),
     Endpoint: session.Values["Endpoint"].(string),
+    Html5browser: os.Getenv("HTML5BROWSER"),
   })
 
   return nil

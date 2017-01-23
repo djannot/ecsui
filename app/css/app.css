@@ -131,8 +131,7 @@ div.space {
 }
 
 .panel > .subpanel-heading {
-    background-image: none;
-    background-color: white;
-    color: black;
-
+  background-image: none;
+  background-color: white;
+  color: black;
 }

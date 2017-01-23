@@ -110,6 +110,7 @@ function formatXml(xml) {
     $scope.main.swiftextensions = {};
     $scope.main.swiftextensions.headers = {};
     $scope.main.swiftextensions.response = {};
+    $scope.main.html5browser = false;
     $scope.main.menu = "";
     $scope.main.api = "";
     $scope.main.billing = {};
@@ -139,6 +140,18 @@ function formatXml(xml) {
         if((link.port == 9020)||(link.port == 9021)) {
           $scope.main.swiftendpoint = link.protocol + "//" + link.hostname + ":" + (parseInt(link.port) + 4) + "/auth/v1.0";
           $scope.main.atmosendpoint = link.protocol + "//" + link.hostname + ":" + (parseInt(link.port) + 2);
+        }
+        if(data["html5browser"] != "") {
+          $scope.main.html5browser = true;
+          $("#html5browser")[0].src = data["html5browser"]
+          $("#html5browser")[0].onload = function() {
+            try {
+              $("#html5browser")[0].contentWindow.postMessage($scope.main.credentials, 'http://10.64.231.196:9020');
+              console.log("Credentials sent to Iframe");
+            } catch (error) {
+                console.log(error);
+            }
+          }
         }
       }).
       error(function(data, status, headers, config) {
@@ -664,6 +677,13 @@ function formatXml(xml) {
     return {
       restrict: 'E',
       templateUrl: "app/html/main-apis-response.html"
+    };
+  });
+
+  app.directive("mainHtml5browser", function() {
+    return {
+      restrict: 'E',
+      templateUrl: "app/html/main-html5browser.html"
     };
   });
 
