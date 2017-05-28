@@ -19,7 +19,7 @@ import (
 )
 
 var rendering *render.Render
-var store = sessions.NewCookieStore([]byte("session-key"))
+var store = sessions.NewCookieStore([]byte("ecsui"))
 var config Config
 var ecs Ecs
 
