@@ -5,6 +5,14 @@ html, body {
   padding: 0;
 }
 
+@-moz-document url-prefix() {
+  fieldset { display: table-cell; }
+}
+
+.panel-heading > a {
+  color: white;
+}
+
 .spinner {
   display: inline-block;
   opacity: 0;

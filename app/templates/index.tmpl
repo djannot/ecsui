@@ -2,6 +2,7 @@
 <html lang="en" ng-app="ECSUI">
 <head>
   <title>ECS API User Interface</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" type="text/css" href="/app/css/bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="/app/css/bootstrap-theme.min.css">
   <link rel="stylesheet" type="text/css" href="/app/css/font-awesome.css">
@@ -19,7 +20,7 @@
   <input type="hidden" id="s3login" value="{{ .s3login }}" />
   <main-message></main-message>
 
-  <div id="content" class="main container-fluid fullsize">
+  <div id="content" class="main container-fluid">
     <div class="row">
         <h1 class="logo col-md-12">ECS API User Interface</h1>
     </div>
@@ -39,7 +40,7 @@
         <main-html5browser></main-html5browser>
       </div>
     </div>
-    <div class="row row-eq-height fullsize">
+    <div class="row">
       <div class="col-md-4">
         <div class="row">
           <div class="col-md-12">
@@ -56,8 +57,8 @@
           </div>
         </div>
       </div>
-      <div class="col-md-8 fullsize">
-        <div class="row fullsize">
+      <div class="col-md-8">
+        <div class="row">
           <div class="col-md-12">
             <main-metadata-result></main-metadata-result>
           </div>
