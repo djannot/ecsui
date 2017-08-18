@@ -29,7 +29,7 @@ You can optionaly set environment variables (*USER*, *PASSWORD* and *ENDPOINT*) 
 
 To start the application, run:
 ```
-docker run -d -p 80:80 djannot/ecsui
+docker run -d -p 80:80 djannot/ecsui /go/src/ecsui/ecsui
 ```
 
 The application is now available on port 80.
